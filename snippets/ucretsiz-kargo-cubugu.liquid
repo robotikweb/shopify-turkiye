@@ -1,0 +1,39 @@
+{%- comment -%}
+  Ücretsiz kargo ilerleme çubuğu
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Kullanım (sepet sayfası veya sepet çekmecesi):
+    {% render 'ucretsiz-kargo-cubugu', esik: 150000 %}
+
+  esik: ücretsiz kargo sınırı, KURUŞ cinsinden (1.500 TL = 150000).
+  Mağaza para birimi TL olarak düşünülmüştür. Birden fazla para birimiyle satış yapıyorsanız
+  eşiği her para birimi için ayrı belirlemeniz gerekir.
+  Sepet AJAX ile güncellenen temalarda bu snippet'in bulunduğu bölüm de yeniden yüklenmelidir.
+{%- endcomment -%}
+{%- liquid
+  assign esik = esik | default: 150000 | plus: 0
+  assign toplam = cart.total_price
+  assign kalan = esik | minus: toplam
+  if esik > 0
+    assign oran = toplam | times: 100 | divided_by: esik
+  else
+    assign oran = 100
+  endif
+  if oran > 100
+    assign oran = 100
+  endif
+-%}
+{%- if cart.item_count > 0 -%}
+<div class="ucretsiz-kargo" role="status" style="margin: 1rem 0;">
+  <p style="margin: 0 0 .5rem;">
+    {%- if kalan > 0 -%}
+      Ücretsiz kargo için <strong>{{ kalan | money }}</strong> daha ekleyin.
+    {%- else -%}
+      <strong>Tebrikler, kargonuz ücretsiz!</strong>
+    {%- endif -%}
+  </p>
+  <div style="height: 8px; border-radius: 999px; background: rgba(0,0,0,.08); overflow: hidden;" aria-hidden="true">
+    <div style="height: 100%; width: {{ oran }}%; background: currentColor; transition: width .3s;"></div>
+  </div>
+</div>
+{%- endif -%}

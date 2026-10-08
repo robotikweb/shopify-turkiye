@@ -1,0 +1,41 @@
+{%- comment -%}
+  TC Kimlik No alanı (sepet sayfası)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Kullanım: sepet formunun (<form action="{{ routes.cart_url }}" ...>) İÇİNE ekleyin:
+    {% render 'tc-kimlik-alani' %}
+    {% render 'tc-kimlik-alani', zorunlu: true %}
+
+  Girilen numara siparişe "TC Kimlik No" sepet özelliği (cart attribute) olarak kaydedilir
+  ve sipariş detayında "Ek ayrıntılar" altında görünür.
+
+  KVKK: TC Kimlik No kişisel veridir. Yalnızca gerçekten gerekiyorsa (ör. e-arşiv faturada
+  yasal zorunluluk) isteyin ve aydınlatma metninizde belirtin.
+{%- endcomment -%}
+{%- liquid
+  assign zorunlu = zorunlu | default: false
+  assign mevcut = cart.attributes['TC Kimlik No']
+-%}
+<div class="tc-kimlik-alani" style="margin: 1rem 0;">
+  <label for="TcKimlikNo" style="display:block; margin-bottom:.4rem;">
+    TC Kimlik No{% unless zorunlu %} (isteğe bağlı){% endunless %}
+  </label>
+  <input
+    type="text"
+    id="TcKimlikNo"
+    name="attributes[TC Kimlik No]"
+    value="{{ mevcut | escape }}"
+    inputmode="numeric"
+    autocomplete="off"
+    maxlength="11"
+    pattern="[1-9][0-9]{10}"
+    data-tc-kimlik
+    {% if zorunlu %}required{% endif %}
+    style="width:100%; max-width:320px; padding:.6rem .75rem;"
+  >
+  <p data-tc-mesaj hidden role="alert" style="color:#b42318; margin:.4rem 0 0; font-size:.9em;">
+    Lütfen geçerli bir TC Kimlik No girin.
+  </p>
+  <p style="margin:.4rem 0 0; font-size:.85em; opacity:.75;">Fatura için kullanılır.</p>
+</div>
+<script src="{{ 'tc-kimlik.js' | asset_url }}" defer></script>

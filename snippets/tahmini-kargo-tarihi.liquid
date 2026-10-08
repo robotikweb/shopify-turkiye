@@ -1,0 +1,52 @@
+{%- comment -%}
+  Tahmini kargoya veriliş tarihi (ürün sayfası)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Kullanım:
+    {% render 'tahmini-kargo-tarihi' %}
+    {% render 'tahmini-kargo-tarihi', son_saat: 14, hazirlik_gun: 1, ek_tatiller: '2026-12-31,2027-01-02' %}
+
+  son_saat     : bu saatten önce verilen siparişler aynı gün kargoya verilir (Türkiye saati). Varsayılan 15.
+  hazirlik_gun : son saatten önceki siparişler için ek hazırlık süresi (iş günü). Varsayılan 0 = aynı gün.
+  ek_tatiller  : virgülle ayrılmış YYYY-AA-GG tarihleri. Ramazan ve Kurban Bayramı tarihleri her yıl
+                 değiştiği için buraya kendiniz ekleyin; sabit resmî tatiller zaten hesaba katılır.
+  Hafta sonları iş günü sayılmaz.
+{%- endcomment -%}
+{%- liquid
+  assign son_saat = son_saat | default: 15
+  assign hazirlik_gun = hazirlik_gun | default: 0
+  assign ek_tatiller = ek_tatiller | default: ''
+-%}
+<p class="tahmini-kargo" data-son-saat="{{ son_saat }}" data-gun="{{ hazirlik_gun }}" data-tatiller="{{ ek_tatiller | escape }}" hidden style="margin: .75rem 0;">
+  Şimdi sipariş verirseniz <strong data-tarih></strong> kargoya verilir.
+</p>
+<script>
+(function () {
+  var el = document.currentScript.previousElementSibling;
+  if (!el || !el.classList.contains('tahmini-kargo')) return;
+  var sabit = ['01-01', '04-23', '05-01', '05-19', '07-15', '08-30', '10-29'];
+  var ek = (el.dataset.tatiller || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+  // Türkiye saatine göre "şimdi"
+  var parcalar = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Istanbul', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hour12: false }).formatToParts(new Date());
+  var p = {}; parcalar.forEach(function (x) { p[x.type] = x.value; });
+  var gun = new Date(Date.UTC(+p.year, +p.month - 1, +p.day));
+  var saat = +p.hour % 24;
+  function iso(d) { return d.toISOString().slice(0, 10); }
+  function isGunu(d) {
+    var hg = d.getUTCDay();
+    if (hg === 0 || hg === 6) return false;
+    var s = iso(d);
+    return sabit.indexOf(s.slice(5)) === -1 && ek.indexOf(s) === -1;
+  }
+  var kalan = Math.max(0, parseInt(el.dataset.gun, 10) || 0);
+  // Son saati geçtiyse veya bugün iş günü değilse bugün sayılmaz
+  if (!(isGunu(gun) && saat < (+el.dataset.sonSaat || 15))) kalan = Math.max(kalan, 1);
+  while (kalan > 0 || !isGunu(gun)) {
+    gun.setUTCDate(gun.getUTCDate() + 1);
+    if (isGunu(gun)) kalan--;
+  }
+  var bugunMu = iso(gun) === p.year + '-' + p.month + '-' + p.day;
+  el.querySelector('[data-tarih]').textContent = bugunMu ? 'bugün' : gun.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+  el.hidden = false;
+})();
+</script>
