@@ -1,0 +1,113 @@
+{%- comment -%}
+  Havale / EFT bilgi kutusu (IBAN + kopyala butonu)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Kullanım (ürün sayfası, sepet sayfası veya "Ödeme bilgileri" gibi bir sayfa şablonu):
+    {% render 'havale-eft-bilgi', iban: 'TR00 0000 0000 0000 0000 0000 00', alici: 'Örnek Ticaret Ltd. Şti.' %}
+    {% render 'havale-eft-bilgi', iban: '...', alici: '...', banka: 'Banka Adı', aciklama: 'Açıklama kısmına sipariş numaranızı yazın.' %}
+
+  iban     : (zorunlu) hesap IBAN'ı. Boşluklu veya boşluksuz yazılabilir; dörtlü gruplar hâlinde gösterilir,
+             "Kopyala" butonu boşluksuz hâlini panoya kopyalar.
+  alici    : (zorunlu) hesap sahibinin bankada kayıtlı adı / unvanı. Boşsa kutu gösterilmez.
+  banka    : (isteğe bağlı) banka adı.
+  aciklama : (isteğe bağlı) müşteriye göstermek istediğiniz kendi notunuz. Varsayılan metin yoktur;
+             ödeme süresi, sipariş numarası yazılması gibi kuralları kendi uygulamanıza göre siz yazın.
+  baslik   : (isteğe bağlı) kutu başlığı. Varsayılan "Havale / EFT ile ödeme".
+
+  Notlar:
+  - Bu snippet yalnızca bilgi gösterir. Havale/EFT'yi ödeme yöntemi olarak sunmak için
+    Ayarlar > Ödemeler > Manuel ödeme yöntemleri bölümünden "Banka havalesi" yöntemini ayrıca açmalısınız.
+  - Birden fazla hesap için snippet'i her hesap için ayrı ayrı çağırabilirsiniz.
+  - Tema düzenleyicide (önizleme) IBAN hatalı görünüyorsa yalnızca size bir uyarı gösterilir;
+    müşteriler bu uyarıyı görmez. Yine de IBAN'ı yayına almadan önce bankanızla karşılaştırın.
+{%- endcomment -%}
+{%- liquid
+  assign iban_duz = iban | default: '' | remove: ' ' | remove: '-' | remove: '.' | strip | upcase
+  assign alici = alici | default: '' | strip
+  assign baslik = baslik | default: 'Havale / EFT ile ödeme'
+  assign grup_sonu = iban_duz.size | plus: 3 | divided_by: 4 | minus: 1
+  capture iban_gorunen
+    for i in (0..grup_sonu)
+      assign bas = i | times: 4
+      unless forloop.first
+        echo ' '
+      endunless
+      echo iban_duz | slice: bas, 4
+    endfor
+  endcapture
+-%}
+{%- if iban_duz != blank and alici != blank -%}
+<div class="havale-eft" data-iban="{{ iban_duz | escape }}"{% if request.design_mode %} data-tasarim{% endif %}
+     style="margin: 1rem 0; padding: 1rem; border: 1px solid rgba(0,0,0,.12); border-radius: 8px;">
+  <p style="margin: 0 0 .6rem; font-weight: 600;">{{ baslik | escape }}</p>
+  <dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: .35rem .75rem; align-items: baseline;">
+    {%- if banka != blank -%}
+      <dt style="opacity: .75;">Banka</dt><dd style="margin: 0;">{{ banka | escape }}</dd>
+    {%- endif -%}
+    <dt style="opacity: .75;">Alıcı</dt><dd style="margin: 0;">{{ alici | escape }}</dd>
+    <dt style="opacity: .75;">IBAN</dt>
+    <dd style="margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;">
+      <span style="font-family: ui-monospace, Menlo, Consolas, monospace; letter-spacing: .02em; word-break: break-all;">{{ iban_gorunen | strip | escape }}</span>
+      <button type="button" class="button button--tertiary" data-iban-kopyala
+              aria-label="IBAN'ı kopyala" style="min-height: auto; padding: .3rem .7rem; cursor: pointer;">Kopyala</button>
+    </dd>
+  </dl>
+  <p data-iban-durum role="status" aria-live="polite" style="margin: .4rem 0 0; font-size: .85em; min-height: 1.2em;"></p>
+  {%- if aciklama != blank -%}
+    <p style="margin: .4rem 0 0; font-size: .9em;">{{ aciklama | escape }}</p>
+  {%- endif -%}
+  <p data-iban-uyari hidden style="margin: .5rem 0 0; font-size: .85em; color: #b42318;">
+    Uyarı (yalnızca tema düzenleyicide görünür): IBAN doğrulama hanesi tutmuyor, lütfen kontrol edin.
+  </p>
+</div>
+<script>
+(function () {
+  var kutu = document.currentScript.previousElementSibling;
+  if (!kutu || !kutu.classList.contains('havale-eft')) return;
+  var iban = kutu.dataset.iban;
+  var durum = kutu.querySelector('[data-iban-durum]');
+
+  // ISO 13616 mod-97 kontrolü; yalnızca tema düzenleyicide mağaza sahibini uyarmak için
+  function ibanGecerli(v) {
+    v = String(v || '').replace(/\s+/g, '').toUpperCase();
+    if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}$/.test(v)) return false;
+    if (v.slice(0, 2) === 'TR' && v.length !== 26) return false;
+    var d = v.slice(4) + v.slice(0, 4), kalan = 0;
+    for (var i = 0; i < d.length; i++) {
+      var c = d.charCodeAt(i);
+      var s = c >= 65 ? String(c - 55) : d.charAt(i);
+      for (var j = 0; j < s.length; j++) kalan = (kalan * 10 + +s.charAt(j)) % 97;
+    }
+    return kalan === 1;
+  }
+  if (kutu.hasAttribute('data-tasarim') && !ibanGecerli(iban)) {
+    kutu.querySelector('[data-iban-uyari]').hidden = false;
+  }
+
+  function bildir(metin) {
+    durum.textContent = metin;
+    clearTimeout(kutu._zamanlayici);
+    kutu._zamanlayici = setTimeout(function () { durum.textContent = ''; }, 2500);
+  }
+  function eskiYontem() {
+    var t = document.createElement('textarea');
+    t.value = iban;
+    t.setAttribute('readonly', '');
+    t.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+    document.body.appendChild(t);
+    t.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) {}
+    document.body.removeChild(t);
+    bildir(ok ? 'IBAN kopyalandı.' : 'Kopyalanamadı, lütfen IBAN\'ı elle seçin.');
+  }
+  kutu.querySelector('[data-iban-kopyala]').addEventListener('click', function () {
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(iban).then(function () { bildir('IBAN kopyalandı.'); }, eskiYontem);
+    } else {
+      eskiYontem();
+    }
+  });
+})();
+</script>
+{%- endif -%}
