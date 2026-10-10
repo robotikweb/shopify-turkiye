@@ -12,6 +12,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/ucretsiz-kargo-cubugu.liquid` | "Ücretsiz kargo için 120 TL daha ekleyin" ilerleme çubuğu |
 | `snippets/tahmini-kargo-tarihi.liquid` | "Şimdi sipariş verirseniz Pazartesi kargoya verilir" bilgisi; hafta sonlarını ve resmî tatilleri atlar |
 | `snippets/whatsapp-siparis.liquid` | Ürün adı, varyant ve bağlantıyla dolu "WhatsApp ile sor" butonu |
+| `snippets/havale-eft-bilgi.liquid` | Banka, alıcı ve IBAN bilgisini gösteren, tek tıkla IBAN kopyalayan Havale/EFT kutusu |
 
 ## Kurulum
 
@@ -58,6 +59,16 @@ Sabit resmî tatiller (1 Ocak, 23 Nisan, 1 Mayıs, 19 Mayıs, 15 Temmuz, 30 Ağu
 ```liquid
 {% render 'whatsapp-siparis', product: product, numara: '905321234567' %}
 ```
+
+### Havale / EFT bilgi kutusu
+
+Ürün sayfası, sepet sayfası veya "Ödeme bilgileri" gibi bir sayfada:
+
+```liquid
+{% render 'havale-eft-bilgi', iban: 'TR00 0000 0000 0000 0000 0000 00', alici: 'Örnek Ticaret Ltd. Şti.', banka: 'Banka Adı' %}
+```
+
+IBAN dörtlü gruplar hâlinde gösterilir; "Kopyala" butonu boşluksuz hâlini panoya kopyalar. Müşteriye göstermek istediğiniz notu (ör. ödeme süresi) `aciklama` ile kendiniz yazın; snippet varsayılan bir kural eklemez. Tema düzenleyicide IBAN'ın doğrulama hanesi tutmuyorsa yalnızca size bir uyarı gösterilir. Havale/EFT'yi ödeme yöntemi olarak sunmak için **Ayarlar > Ödemeler > Manuel ödeme yöntemleri** bölümünden ayrıca etkinleştirmeniz gerekir.
 
 ## Türkiye için Shopify kontrol listesi
 
