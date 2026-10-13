@@ -1,0 +1,64 @@
+{%- comment -%}
+  Sabit WhatsApp destek butonu (tüm sayfalarda, ekranın köşesinde)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Kullanım: layout/theme.liquid dosyasında </body> etiketinin hemen üstüne:
+    {% render 'whatsapp-destek-butonu', numara: '905xxxxxxxxx' %}
+    {% render 'whatsapp-destek-butonu', numara: '905321234567', metin: 'Bize yazın', konum: 'sol', alt_bosluk: 80, gizle: 'cart,password' %}
+
+  numara     : (zorunlu) ülke koduyla, başında + ve boşluk olmadan (ör. 905321234567). Boşsa buton gösterilmez.
+  mesaj      : (isteğe bağlı) WhatsApp'ta hazır gelecek mesaj. Varsayılan "Merhaba, bilgi almak istiyorum."
+               Ürün sayfalarında ürün adı ve bağlantısı otomatik eklenir (urun_bilgisi: false ile kapatılır).
+  metin      : (isteğe bağlı) butonun yanında görünen yazı (ör. "Bize yazın"). Boşsa yalnızca simge görünür.
+               Telefonda yer kaplamaması için yazı 750px altındaki ekranlarda gizlenir.
+  konum      : (isteğe bağlı) 'sag' (varsayılan) veya 'sol'.
+  alt_bosluk : (isteğe bağlı) alttan boşluk, piksel. Varsayılan 20. Telefonda sabit "Sepete ekle" çubuğu,
+               çerez bandı veya Shopify Inbox sohbet balonuyla çakışıyorsa artırın ya da konumu değiştirin.
+  gizle      : (isteğe bağlı) butonun gösterilmeyeceği şablon türleri, virgülle (ör. 'cart,password').
+               Şablon türleri (template.name): index, product, collection, cart, page, blog, article,
+               search, password, 404. Özel şablonlar (ör. product.ozel) kendi türüyle eşleşir.
+  urun_bilgisi : (isteğe bağlı) false verilirse ürün sayfalarında ürün adı ve bağlantısı mesaja eklenmez.
+
+  Notlar:
+  - Uygulama veya ek dosya gerektirmez; JavaScript kullanmaz.
+  - Ödeme (checkout) sayfaları theme.liquid kullanmadığı için buton orada görünmez.
+  - Telefon numaranız sayfa kaynağında herkese açık olarak yer alır.
+{%- endcomment -%}
+{%- liquid
+  assign numara = numara | default: '' | remove: '+' | remove: ' ' | remove: '-' | strip
+  assign mesaj = mesaj | default: 'Merhaba, bilgi almak istiyorum.' | strip
+  assign alt_bosluk = alt_bosluk | default: 20 | plus: 0
+  assign gizlenecekler = gizle | default: '' | remove: ' ' | split: ','
+
+  assign goster = true
+  if numara == blank or gizlenecekler contains template.name
+    assign goster = false
+  endif
+
+  if template.name == 'product' and urun_bilgisi != false
+    assign mesaj = mesaj | append: ' Ürün: ' | append: page_title | append: ' ' | append: canonical_url
+  endif
+  assign mesaj_kodlu = mesaj | url_encode | replace: '+', '%20'
+-%}
+{%- if goster -%}
+<style>
+  .wa-destek { position: fixed; z-index: 999; bottom: calc({{ alt_bosluk }}px + env(safe-area-inset-bottom, 0px));
+    {% if konum == 'sol' %}left{% else %}right{% endif %}: 20px;
+    display: inline-flex; align-items: center; gap: .5rem; min-height: 52px; min-width: 52px; padding: 0 14px;
+    justify-content: center; border-radius: 26px; background: #25d366; color: #fff; text-decoration: none;
+    font-size: 15px; font-weight: 600; line-height: 1; box-shadow: 0 4px 14px rgba(0,0,0,.18); transition: transform .15s; }
+  .wa-destek:hover { transform: translateY(-2px); color: #fff; }
+  .wa-destek:focus-visible { outline: 3px solid #128c7e; outline-offset: 3px; }
+  .wa-destek svg { flex: 0 0 auto; }
+  @media (max-width: 749px) {
+    .wa-destek { {% if konum == 'sol' %}left{% else %}right{% endif %}: 14px; }
+    .wa-destek__metin { display: none; }
+  }
+  @media print { .wa-destek { display: none; } }
+</style>
+<a class="wa-destek" href="https://wa.me/{{ numara | escape }}?text={{ mesaj_kodlu }}"
+   target="_blank" rel="noopener" aria-label="WhatsApp ile bize yazın (yeni sekmede açılır)">
+  <svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7.5-.1 1.5-.6 1.8-1.2.2-.6.2-1.1.1-1.2l-.5-.3z"/></svg>
+  {%- if metin != blank -%}<span class="wa-destek__metin">{{ metin | escape }}</span>{%- endif -%}
+</a>
+{%- endif -%}

@@ -13,6 +13,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/tahmini-kargo-tarihi.liquid` | "Şimdi sipariş verirseniz Pazartesi kargoya verilir" bilgisi; hafta sonlarını ve resmî tatilleri atlar |
 | `snippets/whatsapp-siparis.liquid` | Ürün adı, varyant ve bağlantıyla dolu "WhatsApp ile sor" butonu |
 | `snippets/havale-eft-bilgi.liquid` | Banka, alıcı ve IBAN bilgisini gösteren, tek tıkla IBAN kopyalayan Havale/EFT kutusu |
+| `snippets/whatsapp-destek-butonu.liquid` | Tüm sayfalarda köşede duran, mobil uyumlu sabit WhatsApp destek butonu; ürün sayfasında ürün adını mesaja ekler |
 
 ## Kurulum
 
@@ -69,6 +70,17 @@ Sabit resmî tatiller (1 Ocak, 23 Nisan, 1 Mayıs, 19 Mayıs, 15 Temmuz, 30 Ağu
 ```
 
 IBAN dörtlü gruplar hâlinde gösterilir; "Kopyala" butonu boşluksuz hâlini panoya kopyalar. Müşteriye göstermek istediğiniz notu (ör. ödeme süresi) `aciklama` ile kendiniz yazın; snippet varsayılan bir kural eklemez. Tema düzenleyicide IBAN'ın doğrulama hanesi tutmuyorsa yalnızca size bir uyarı gösterilir. Havale/EFT'yi ödeme yöntemi olarak sunmak için **Ayarlar > Ödemeler > Manuel ödeme yöntemleri** bölümünden ayrıca etkinleştirmeniz gerekir.
+
+### Sabit WhatsApp destek butonu
+
+`layout/theme.liquid` dosyasında `</body>` etiketinin hemen üstüne:
+
+```liquid
+{% render 'whatsapp-destek-butonu', numara: '905321234567' %}
+{% render 'whatsapp-destek-butonu', numara: '905321234567', metin: 'Bize yazın', konum: 'sol', alt_bosluk: 80, gizle: 'cart,password' %}
+```
+
+Buton tüm sayfalarda sağ (veya sol) alt köşede durur; ürün sayfalarında hazır mesaja ürün adı ve bağlantısı eklenir (`urun_bilgisi: false` ile kapatılır). `metin` yazısı telefonda yer kaplamaması için gizlenir, yalnızca simge kalır. Telefonda sabit "Sepete ekle" çubuğu, çerez bandı veya sohbet balonuyla çakışıyorsa `alt_bosluk` değerini artırın ya da `konum: 'sol'` kullanın. JavaScript kullanmaz.
 
 ## Türkiye için Shopify kontrol listesi
 
