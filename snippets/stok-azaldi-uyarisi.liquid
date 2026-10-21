@@ -1,0 +1,112 @@
+{%- comment -%}
+  Stok azaldı uyarısı (ürün sayfası, envanteri takip edilen varyantlar)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Kullanım (ürün sayfasında, fiyatın veya "Sepete ekle" butonunun yakınına):
+    {% render 'stok-azaldi-uyarisi', urun: product %}
+    {% render 'stok-azaldi-uyarisi', urun: product, esik: 3 %}
+    {% render 'stok-azaldi-uyarisi', urun: product, esik: 10, metin: 'Bu üründen yalnızca [adet] adet kaldı.' %}
+
+  urun  : (isteğe bağlı) ürün nesnesi. Verilmezse sayfanın product nesnesi kullanılır.
+  esik  : (isteğe bağlı) uyarının gösterileceği en yüksek stok adedi. Varsayılan 5.
+          Seçili varyantın stoğu 1 ile bu sayı arasındaysa uyarı görünür.
+  metin : (isteğe bağlı) uyarı yazısı. [adet] yazan yere gerçek stok adedi konur.
+          Varsayılan "Stokta son [adet] ürün kaldı."
+
+  Notlar:
+  - Yalnızca envanteri Shopify tarafından takip edilen varyantlarda çalışır
+    (Ürün > Varyant > "Envanteri takip et" açık olmalı). Takip edilmeyen varyantlarda uyarı çıkmaz.
+  - Stoğu 0 veya altında olup "stokta yokken satışa devam et" seçili (ön sipariş) varyantlarda
+    uyarı çıkmaz; tükenmiş varyantlarda da çıkmaz (onları tema zaten "Tükendi" olarak gösterir).
+  - Gösterilen adet Shopify'ın varyant için verdiği gerçek stok sayısıdır; snippet sayı uydurmaz.
+    Sayfa önbelleği nedeniyle birkaç dakikalık gecikme olabilir. Birden fazla lokasyonunuz varsa
+    sayı, Shopify'ın online mağaza için hesapladığı toplam stoktur.
+  - Çok varyantlı ürünlerde müşteri seçim değiştirdikçe uyarı güncellenir. Snippet, sepete ekleme
+    formundaki name="id" alanını izler (Dawn ve türevlerinde bu alan varyant değişince güncellenir).
+  - Gizlilik: Sayfa kaynağına yalnızca eşiğin altındaki varyantların stok adedi yazılır;
+    stoğu eşiğin üstündeki varyantların adedi paylaşılmaz.
+  - Dawn'ın yeni sürümlerinde ürün sayfası için yerleşik bir "Envanter durumu" bloğu vardır; onu
+    kullanıyorsanız bu snippet'e gerek yoktur, ikisini birlikte kullanmayın. Bu snippet o bloğu sunmayan
+    temalar veya uyarı yazısını kendi cümlenizle göstermek istediğiniz durumlar içindir.
+  - Uygulama veya ek dosya gerektirmez.
+{%- endcomment -%}
+{%- liquid
+  assign urun = urun | default: product
+  assign esik = esik | default: 5 | plus: 0
+  assign metin = metin | default: 'Stokta son [adet] ürün kaldı.'
+  assign secili = urun.selected_or_first_available_variant
+
+  assign ilk_adet = 0
+  if secili.inventory_management != blank and secili.available and secili.inventory_quantity > 0 and secili.inventory_quantity <= esik
+    assign ilk_adet = secili.inventory_quantity
+  endif
+  assign ilk_metin = metin | replace: '[adet]', ilk_adet
+-%}
+{%- if urun != blank and esik > 0 -%}
+<p class="stok-azaldi" role="status" aria-live="polite"
+   data-esik="{{ esik }}" data-metin="{{ metin | escape }}"
+   style="margin: .5rem 0; font-size: .9em; font-weight: 600; color: #b42318;"
+   {% if ilk_adet == 0 %}hidden{% endif %}>
+  <span aria-hidden="true" style="display: inline-block; width: .55em; height: .55em; margin-right: .4em; border-radius: 50%; background: currentColor; vertical-align: .1em;"></span>
+  <span data-stok-metin>{{ ilk_metin | escape }}</span>
+</p>
+<script type="application/json" data-stok-varyantlar>
+  {
+    {%- for v in urun.variants -%}
+      {%- liquid
+        assign v_adet = 'null'
+        if v.inventory_management != blank and v.available and v.inventory_quantity > 0 and v.inventory_quantity <= esik
+          assign v_adet = v.inventory_quantity
+        endif
+      -%}
+      "{{ v.id }}": {{ v_adet }}{% unless forloop.last %},{% endunless %}
+    {%- endfor -%}
+  }
+</script>
+<script>
+(function () {
+  var veri = document.currentScript.previousElementSibling;
+  var kutu = veri && veri.previousElementSibling;
+  if (!kutu || !kutu.classList.contains('stok-azaldi')) return;
+  var varyantlar;
+  try { varyantlar = JSON.parse(veri.textContent); } catch (e) { return; }
+  var sablon = kutu.getAttribute('data-metin');
+  var yazi = kutu.querySelector('[data-stok-metin]');
+  var sonId = null;
+
+  function guncelle(id) {
+    id = String(id || '');
+    if (!Object.prototype.hasOwnProperty.call(varyantlar, id) || id === sonId) return;
+    sonId = id;
+    var adet = varyantlar[id];
+    if (typeof adet === 'number' && adet > 0) {
+      yazi.textContent = sablon.split('[adet]').join(String(adet));
+      kutu.hidden = false;
+    } else {
+      kutu.hidden = true;
+    }
+  }
+
+  // Sayfadaki sepete ekleme formlarından bu ürüne ait varyant kimliğini bul
+  function seciliId() {
+    var alanlar = document.querySelectorAll('form[action*="/cart/add"] [name="id"]');
+    for (var i = 0; i < alanlar.length; i++) {
+      if (Object.prototype.hasOwnProperty.call(varyantlar, String(alanlar[i].value))) return alanlar[i].value;
+    }
+    return null;
+  }
+
+  sonId = seciliId();
+  document.addEventListener('change', function (e) {
+    var h = e.target;
+    if (h && h.name === 'id' && h.closest && h.closest('form[action*="/cart/add"]')) guncelle(h.value);
+  }, true);
+  // Değişiklik olayı yaymayan temalar için hafif yedek kontrol
+  setInterval(function () {
+    if (document.hidden) return;
+    var id = seciliId();
+    if (id) guncelle(id);
+  }, 800);
+})();
+</script>
+{%- endif -%}

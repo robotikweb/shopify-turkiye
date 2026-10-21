@@ -15,6 +15,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/havale-eft-bilgi.liquid` | Banka, alıcı ve IBAN bilgisini gösteren, tek tıkla IBAN kopyalayan Havale/EFT kutusu |
 | `snippets/whatsapp-destek-butonu.liquid` | Tüm sayfalarda köşede duran, mobil uyumlu sabit WhatsApp destek butonu; ürün sayfasında ürün adını mesaja ekler |
 | `snippets/kdv-dahil-etiketi.liquid` | Fiyatın altına mağazanın vergi ayarına göre "KDV dahil" (isteğe bağlı "KDV hariç") etiketi; ürün kartlarında ve sepette de kullanılır |
+| `snippets/stok-azaldi-uyarisi.liquid` | Envanteri takip edilen varyantlarda stok eşiğin altına inince "Stokta son 3 ürün kaldı" uyarısı; varyant değişince güncellenir |
 
 ## Kurulum
 
@@ -93,6 +94,17 @@ Buton tüm sayfalarda sağ (veya sol) alt köşede durur; ürün sayfalarında h
 ```
 
 Etiket yalnızca mağazanızın vergi ayarı fiyatlara vergiyi dahil ediyorsa (`cart.taxes_included`) görünür; değilse `haric_metin` verdiyseniz o, vermediyseniz hiçbir şey gösterilmez. Snippet oran göstermez veya hesaplamaz; `ek_metin` için varsayılan bir ifade yoktur, kendi metninizi yazın. Dawn ürün sayfasında fiyatın altında zaten vergi satırı gösterebilir; orada kullanacaksanız çift yazı olmaması için temanın satırını kaldırın. JavaScript kullanmaz.
+
+### Stok azaldı uyarısı
+
+Ürün sayfasında, fiyatın veya "Sepete ekle" butonunun yakınına:
+
+```liquid
+{% render 'stok-azaldi-uyarisi', urun: product %}
+{% render 'stok-azaldi-uyarisi', urun: product, esik: 3, metin: 'Bu üründen yalnızca [adet] adet kaldı.' %}
+```
+
+Seçili varyantın gerçek stoğu 1 ile `esik` (varsayılan 5) arasındaysa uyarı görünür; `[adet]` yerine stok sayısı yazılır. Envanteri takip edilmeyen, tükenmiş veya stokta yokken satışa devam eden varyantlarda uyarı çıkmaz. Müşteri varyant değiştirdikçe güncellenir. Sayfa kaynağına yalnızca eşiğin altındaki stok adetleri yazılır. Dawn'ın yerleşik "Envanter durumu" bloğunu kullanıyorsanız ikisini birlikte kullanmayın.
 
 ## Türkiye için Shopify kontrol listesi
 
