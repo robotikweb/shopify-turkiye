@@ -14,6 +14,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/whatsapp-siparis.liquid` | Ürün adı, varyant ve bağlantıyla dolu "WhatsApp ile sor" butonu |
 | `snippets/havale-eft-bilgi.liquid` | Banka, alıcı ve IBAN bilgisini gösteren, tek tıkla IBAN kopyalayan Havale/EFT kutusu |
 | `snippets/whatsapp-destek-butonu.liquid` | Tüm sayfalarda köşede duran, mobil uyumlu sabit WhatsApp destek butonu; ürün sayfasında ürün adını mesaja ekler |
+| `snippets/kdv-dahil-etiketi.liquid` | Fiyatın altına mağazanın vergi ayarına göre "KDV dahil" (isteğe bağlı "KDV hariç") etiketi; ürün kartlarında ve sepette de kullanılır |
 
 ## Kurulum
 
@@ -81,6 +82,17 @@ IBAN dörtlü gruplar hâlinde gösterilir; "Kopyala" butonu boşluksuz hâlini 
 ```
 
 Buton tüm sayfalarda sağ (veya sol) alt köşede durur; ürün sayfalarında hazır mesaja ürün adı ve bağlantısı eklenir (`urun_bilgisi: false` ile kapatılır). `metin` yazısı telefonda yer kaplamaması için gizlenir, yalnızca simge kalır. Telefonda sabit "Sepete ekle" çubuğu, çerez bandı veya sohbet balonuyla çakışıyorsa `alt_bosluk` değerini artırın ya da `konum: 'sol'` kullanın. JavaScript kullanmaz.
+
+### "KDV dahil" fiyat etiketi
+
+Ürün kartlarında Dawn tabanlı temalarda `snippets/card-product.liquid` içindeki `render 'price'` satırının altına; sepette toplam tutarın yanına:
+
+```liquid
+{% render 'kdv-dahil-etiketi', kucuk: true %}
+{% render 'kdv-dahil-etiketi', stil: 'rozet', haric_metin: 'KDV hariç', ek_metin: 'Kargo ödeme adımında hesaplanır.' %}
+```
+
+Etiket yalnızca mağazanızın vergi ayarı fiyatlara vergiyi dahil ediyorsa (`cart.taxes_included`) görünür; değilse `haric_metin` verdiyseniz o, vermediyseniz hiçbir şey gösterilmez. Snippet oran göstermez veya hesaplamaz; `ek_metin` için varsayılan bir ifade yoktur, kendi metninizi yazın. Dawn ürün sayfasında fiyatın altında zaten vergi satırı gösterebilir; orada kullanacaksanız çift yazı olmaması için temanın satırını kaldırın. JavaScript kullanmaz.
 
 ## Türkiye için Shopify kontrol listesi
 

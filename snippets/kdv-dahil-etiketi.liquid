@@ -1,0 +1,60 @@
+{%- comment -%}
+  "KDV dahil" fiyat etiketi (ürün sayfası, ürün kartları, sepet)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Kullanım (fiyatın hemen altına veya yanına):
+    {% render 'kdv-dahil-etiketi' %}
+    {% render 'kdv-dahil-etiketi', kucuk: true %}
+    {% render 'kdv-dahil-etiketi', stil: 'rozet', ek_metin: 'Kargo ödeme adımında hesaplanır.' %}
+    {% render 'kdv-dahil-etiketi', haric_metin: 'KDV hariç' %}
+
+  metin       : (isteğe bağlı) fiyatlara vergi dahilken gösterilecek yazı. Varsayılan "KDV dahil".
+  haric_metin : (isteğe bağlı) fiyatlara vergi dahil DEĞİLKEN gösterilecek yazı (ör. "KDV hariç").
+                Varsayılan boştur; boşsa bu durumda hiçbir şey gösterilmez.
+  ek_metin    : (isteğe bağlı) etiketin yanına eklenecek kendi notunuz (ör. kargo bilgisi).
+                Varsayılan metin yoktur; kargo ve vergi kurallarınızı kendiniz yazın.
+  stil        : (isteğe bağlı) 'yazi' (varsayılan, sade küçük yazı) veya 'rozet' (çerçeveli küçük etiket).
+  kucuk       : (isteğe bağlı) true verilirse yazı daha küçük olur; koleksiyon/ürün kartları için uygundur.
+
+  Notlar:
+  - Etiketin gösterilip gösterilmeyeceğine snippet değil, mağazanızın vergi ayarı karar verir:
+    Shopify'ın cart.taxes_included değeri true ise "metin", false ise "haric_metin" gösterilir.
+    Bu değer yönetim panelinde Ayarlar > Vergiler (Taxes and duties) bölümünde fiyatlara verginin dahil
+    olup olmadığını belirleyen ayardan gelir; ülkeye göre farklı ayar yaptıysanız ziyaretçinin ülkesine göre değişir.
+    Yani etiket, ödeme sayfasında uygulanan hesaplamayla tutarlı kalır; ayarınızı önce kontrol edin.
+  - Snippet vergi oranı göstermez ve hesaplamaz. Fiyat gösterimiyle ilgili yasal yükümlülüklerinizi
+    (ör. etiket ifadesi, kargo bilgisi) kendi mali müşavirinize / hukuk danışmanınıza göre belirleyin.
+  - Dawn ve türevleri, ürün sayfasında fiyatın altında zaten verginin dahil olduğunu belirten bir satır gösterebilir.
+    Bu snippet'i orada kullanacaksanız çift yazı olmaması için temanın kendi satırını kaldırın.
+    En çok işe yaradığı yerler: koleksiyon/ürün kartları (snippets/card-product.liquid içinde
+    fiyatı çizen render 'price' satırının altı) ve sepet toplamının yanı.
+  - Hediye kartı gibi vergisiz ürünlerde göstermek istemiyorsanız o şablonda çağırmayın.
+  - Uygulama, ek dosya veya JavaScript gerektirmez.
+{%- endcomment -%}
+{%- liquid
+  if cart.taxes_included
+    assign kdv_yazisi = metin | default: 'KDV dahil' | strip
+  else
+    assign kdv_yazisi = haric_metin | default: '' | strip
+  endif
+  assign ek_metin = ek_metin | default: '' | strip
+  assign stil = stil | default: 'yazi'
+
+  if kucuk
+    assign yazi_boyu = '.75em'
+  else
+    assign yazi_boyu = '.85em'
+  endif
+-%}
+{%- if kdv_yazisi != blank -%}
+<p class="kdv-etiketi" style="margin: .25rem 0 0; font-size: {{ yazi_boyu }}; line-height: 1.4;">
+  {%- if stil == 'rozet' -%}
+    <span style="display: inline-block; padding: .1em .55em; border: 1px solid currentColor; border-radius: 999px; opacity: .8; white-space: nowrap;">{{ kdv_yazisi | escape }}</span>
+  {%- else -%}
+    <span style="opacity: .75;">{{ kdv_yazisi | escape }}</span>
+  {%- endif -%}
+  {%- if ek_metin != blank -%}
+    <span style="opacity: .75;"> · {{ ek_metin | escape }}</span>
+  {%- endif -%}
+</p>
+{%- endif -%}
