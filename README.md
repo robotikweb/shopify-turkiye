@@ -16,6 +16,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/whatsapp-destek-butonu.liquid` | Tüm sayfalarda köşede duran, mobil uyumlu sabit WhatsApp destek butonu; ürün sayfasında ürün adını mesaja ekler |
 | `snippets/kdv-dahil-etiketi.liquid` | Fiyatın altına mağazanın vergi ayarına göre "KDV dahil" (isteğe bağlı "KDV hariç") etiketi; ürün kartlarında ve sepette de kullanılır |
 | `snippets/stok-azaldi-uyarisi.liquid` | Envanteri takip edilen varyantlarda stok eşiğin altına inince "Stokta son 3 ürün kaldı" uyarısı; varyant değişince güncellenir |
+| `snippets/mesafeli-satis-onayi.liquid` | Sepette "Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'ni okudum" onay kutusu; işaretlenmeden ödemeye geçilmez, onay siparişe kaydedilir |
 
 ## Kurulum
 
@@ -105,6 +106,17 @@ Etiket yalnızca mağazanızın vergi ayarı fiyatlara vergiyi dahil ediyorsa (`
 ```
 
 Seçili varyantın gerçek stoğu 1 ile `esik` (varsayılan 5) arasındaysa uyarı görünür; `[adet]` yerine stok sayısı yazılır. Envanteri takip edilmeyen, tükenmiş veya stokta yokken satışa devam eden varyantlarda uyarı çıkmaz. Müşteri varyant değiştirdikçe güncellenir. Sayfa kaynağına yalnızca eşiğin altındaki stok adetleri yazılır. Dawn'ın yerleşik "Envanter durumu" bloğunu kullanıyorsanız ikisini birlikte kullanmayın.
+
+### Mesafeli satış sözleşmesi onay kutusu
+
+Önce **Online Mağaza > Sayfalar** bölümünde ön bilgilendirme formu ve mesafeli satış sözleşmesi sayfalarınızı kendi metninizle oluşturun. Dawn tabanlı temalarda `sections/main-cart-footer.liquid` (sepet sayfası) ve `snippets/cart-drawer.liquid` (sepet çekmecesi) içinde `<div class="cart__ctas"` satırının hemen üstüne:
+
+```liquid
+{% render 'mesafeli-satis-onayi', on_bilgi_url: '/pages/on-bilgilendirme-formu', sozlesme_url: '/pages/mesafeli-satis-sozlesmesi', form_kimligi: 'cart' %}
+{% render 'mesafeli-satis-onayi', on_bilgi_url: '/pages/on-bilgilendirme-formu', sozlesme_url: '/pages/mesafeli-satis-sozlesmesi', form_kimligi: 'CartDrawer-Form' %}
+```
+
+Kutu işaretlenmeden "Ödeme" butonu ödemeye geçirmez ve Türkçe bir uyarı gösterir; işaretlendiğinde onay siparişe "Sözleşme onayı" sepet özelliği olarak kaydedilir. Bağlantılar yeni sekmede açılır. Snippet hiçbir sözleşme metni içermez; cümleyi `metin` ile değiştirebilirsiniz. Kontrol yalnızca sepet ve sepet çekmecesindedir: ürün sayfasındaki "Hemen al" ve sepetteki hızlı ödeme (Shop Pay, PayPal vb.) butonları sepeti atladığı için onları tema düzenleyiciden kapatın. Metinlerin içeriği ve sürecin yeterliliği için hukuk danışmanınıza danışın.
 
 ## Türkiye için Shopify kontrol listesi
 

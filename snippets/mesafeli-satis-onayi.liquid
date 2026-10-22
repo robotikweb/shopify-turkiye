@@ -1,0 +1,179 @@
+{%- comment -%}
+  Mesafeli satış sözleşmesi ve ön bilgilendirme onay kutusu (sepet sayfası ve sepet çekmecesi)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Amaç: Müşteri, sepetten ödemeye geçmeden önce Ön Bilgilendirme Formu'nu ve Mesafeli Satış
+  Sözleşmesi'ni okuduğunu işaretler. Kutu işaretlenmeden "Ödeme" butonu ödemeye geçirmez;
+  işaretlendiğinde onay, siparişe sepet özelliği (cart attribute) olarak kaydedilir.
+
+  Kullanım (Dawn tabanlı temalarda sections/main-cart-footer.liquid içinde
+  <div class="cart__ctas" satırının hemen üstüne):
+    {% render 'mesafeli-satis-onayi', on_bilgi_url: '/pages/on-bilgilendirme-formu', sozlesme_url: '/pages/mesafeli-satis-sozlesmesi', form_kimligi: 'cart' %}
+
+  Sepet çekmecesinde (snippets/cart-drawer.liquid içinde <div class="cart__ctas" satırının üstüne):
+    {% render 'mesafeli-satis-onayi', on_bilgi_url: '/pages/on-bilgilendirme-formu', sozlesme_url: '/pages/mesafeli-satis-sozlesmesi', form_kimligi: 'CartDrawer-Form' %}
+
+  Parametreler:
+  on_bilgi_url     : Ön bilgilendirme formu sayfanızın adresi (ör. '/pages/on-bilgilendirme-formu').
+  sozlesme_url     : Mesafeli satış sözleşmesi sayfanızın adresi (ör. '/pages/mesafeli-satis-sozlesmesi').
+  form_kimligi     : (isteğe bağlı) Kutu sepet formunun DIŞINDAYSA, formun id değeri. Onayın siparişe
+                     kaydedilmesi ve tarayıcı doğrulaması için gerekir. Dawn'da sepet sayfası 'cart',
+                     sepet çekmecesi 'CartDrawer-Form'. Kutu formun içindeyse vermeyin.
+  metin            : (isteğe bağlı) Kutunun yanındaki cümle. [on_bilgi] ve [sozlesme] yazan yerlere
+                     bağlantılar konur. Varsayılan "[on_bilgi] ve [sozlesme] metinlerini okudum, onaylıyorum."
+  on_bilgi_baslik  : (isteğe bağlı) Bağlantı yazısı. Varsayılan "Ön Bilgilendirme Formu".
+  sozlesme_baslik  : (isteğe bağlı) Bağlantı yazısı. Varsayılan "Mesafeli Satış Sözleşmesi".
+  hata_metni       : (isteğe bağlı) İşaretlenmeden ödemeye geçilmek istendiğinde çıkan uyarı.
+                     Varsayılan "Ödemeye geçmek için sözleşmeleri onaylamanız gerekir."
+  kayit            : (isteğe bağlı) false verilirse onay siparişe kaydedilmez. Varsayılan true.
+
+  Notlar:
+  - Snippet hiçbir sözleşme veya bilgilendirme metni içermez. İki sayfayı Online Mağaza > Sayfalar
+    bölümünde kendi metninizle oluşturun ve adreslerini parametreyle verin. Metinlerin içeriği ve
+    onay sürecinin yeterliliği için hukuk danışmanınıza danışın; bu snippet hukuki danışmanlık değildir.
+  - Bağlantılar yeni sekmede açılır; müşterinin sepeti kaybolmaz. Adres verilmezse başlık bağlantısız
+    yazılır ve tema düzenleyicide yalnızca size bir uyarı gösterilir.
+  - Kutu işaretli gelmez; müşterinin kendisi işaretlemelidir.
+  - Onay siparişe "Sözleşme onayı: Onaylandı" sepet özelliği olarak kaydedilir ve sipariş detayında
+    "Ek ayrıntılar" altında görünür (sepet formuyla ödemeye geçildiğinde). Bu kayıt tek başına
+    yasal ispat sayılmayabilir; kendi kayıt yükümlülüklerinizi ayrıca değerlendirin.
+  - Shopify'ın ödeme sayfası (checkout) değiştirilmez; kontrol yalnızca sepet sayfasında ve sepet
+    çekmecesindedir. Ürün sayfasındaki "Hemen al" (dinamik ödeme) butonları ve sepetteki hızlı ödeme
+    butonları (Shop Pay, PayPal vb.) sepeti atlar; bu kontrolün atlanmaması için onları tema
+    düzenleyiciden kapatın.
+  - Tarayıcı doğrulaması (required) JavaScript çalışmasa da ödemeye geçişi engeller; JavaScript ise
+    Türkçe uyarıyı gösterir ve /checkout bağlantısı olan temalarda da çalışır. Aynı formdaki
+    "Güncelle" (name="update") butonları engellenmez.
+  - Uygulama veya ek dosya gerektirmez.
+{%- endcomment -%}
+{%- liquid
+  assign on_bilgi_baslik = on_bilgi_baslik | default: 'Ön Bilgilendirme Formu'
+  assign sozlesme_baslik = sozlesme_baslik | default: 'Mesafeli Satış Sözleşmesi'
+  assign metin = metin | default: '[on_bilgi] ve [sozlesme] metinlerini okudum, onaylıyorum.'
+  assign hata_metni = hata_metni | default: 'Ödemeye geçmek için sözleşmeleri onaylamanız gerekir.'
+  assign kaydet = true
+  if kayit == false
+    assign kaydet = false
+  endif
+
+  assign eksik_adres = false
+  if on_bilgi_url == blank or sozlesme_url == blank
+    assign eksik_adres = true
+  endif
+
+  assign on_bilgi_html = on_bilgi_baslik | escape
+  if on_bilgi_url != blank
+    assign ob_adres = on_bilgi_url | escape
+    assign on_bilgi_html = '<a href="' | append: ob_adres | append: '" target="_blank" rel="noopener" style="text-decoration: underline;">' | append: on_bilgi_html | append: '</a>'
+  endif
+
+  assign sozlesme_html = sozlesme_baslik | escape
+  if sozlesme_url != blank
+    assign ss_adres = sozlesme_url | escape
+    assign sozlesme_html = '<a href="' | append: ss_adres | append: '" target="_blank" rel="noopener" style="text-decoration: underline;">' | append: sozlesme_html | append: '</a>'
+  endif
+
+  assign etiket = metin | escape | replace: '[on_bilgi]', on_bilgi_html | replace: '[sozlesme]', sozlesme_html
+-%}
+<div class="mss-onay" data-mss-onay data-hata="{{ hata_metni | escape }}" style="margin: 0 0 1rem; text-align: left; font-size: .9em; line-height: 1.5;">
+  <label style="display: flex; gap: .6em; align-items: flex-start; cursor: pointer;">
+    <input type="checkbox" required
+      {% if kaydet %}name="attributes[Sözleşme onayı]" value="Onaylandı"{% endif %}
+      {% if form_kimligi != blank %}form="{{ form_kimligi | escape }}"{% endif %}
+      style="flex: 0 0 auto; width: 1.15em; height: 1.15em; margin: .15em 0 0; accent-color: currentColor; cursor: pointer;">
+    <span>{{ etiket }}</span>
+  </label>
+  <p data-mss-hata role="alert" hidden style="margin: .4rem 0 0; color: #b42318; font-weight: 600;">{{ hata_metni | escape }}</p>
+  {%- if request.design_mode and eksik_adres -%}
+    <p style="margin: .4rem 0 0; padding: .4rem .6rem; border: 1px dashed #b42318; color: #b42318;">
+      Yalnızca tema düzenleyicide görünür: on_bilgi_url ve sozlesme_url parametrelerine kendi sayfalarınızın adresini verin.
+    </p>
+  {%- endif -%}
+</div>
+<script>
+(function () {
+  if (window.mssOnayKurulu) return;
+  window.mssOnayKurulu = true;
+
+  var ODEME_SECICI = '[name="checkout"], #checkout, #CartDrawer-Checkout, a[href$="/checkout"], a[href*="/checkout?"]';
+
+  function kutular(kapsam) {
+    return Array.prototype.slice.call(kapsam.querySelectorAll('[data-mss-onay] input[type="checkbox"]'));
+  }
+  function gorunur(el) {
+    return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+  }
+
+  // Tetikleyen butona en yakın onay kutusunu bul: önce bağlı form, sonra üst öğeler.
+  function ilgiliKutu(tetik) {
+    var form = tetik.form || null;
+    if (form) {
+      var bagli = kutular(document).filter(function (k) { return k.form === form; });
+      if (bagli.length) return bagli[0];
+    }
+    for (var el = tetik.parentElement; el; el = el.parentElement) {
+      var bulunan = kutular(el);
+      if (bulunan.length) {
+        var acik = bulunan.filter(gorunur);
+        return (acik.length ? acik : bulunan)[0];
+      }
+    }
+    return null;
+  }
+
+  function uyar(kutu) {
+    var kap = kutu.closest('[data-mss-onay]');
+    var hata = kap && kap.querySelector('[data-mss-hata]');
+    if (hata) {
+      if (!hata.id) hata.id = 'mss-hata-' + Math.random().toString(36).slice(2, 8);
+      kutu.setAttribute('aria-describedby', hata.id);
+      hata.hidden = false;
+    }
+    kutu.setAttribute('aria-invalid', 'true');
+    if (kutu.scrollIntoView) kutu.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    try { kutu.focus({ preventScroll: true }); } catch (e) { kutu.focus(); }
+  }
+
+  function engelle(e, tetik) {
+    var kutu = ilgiliKutu(tetik);
+    if (!kutu || kutu.checked) return false;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    uyar(kutu);
+    return true;
+  }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest ? e.target.closest('button, input[type="submit"], a') : null;
+    if (!t) return;
+    // Aynı formdaki "Güncelle" butonu onay olmadan da çalışsın
+    if (t.name === 'update') { t.setAttribute('formnovalidate', ''); return; }
+    if (t.matches(ODEME_SECICI)) engelle(e, t);
+  }, true);
+
+  // Klavyeyle (Enter) veya betikle gönderilen formlar için ikinci kontrol
+  document.addEventListener('submit', function (e) {
+    var gonderen = e.submitter;
+    if (gonderen && gonderen.name === 'update') return;
+    if (gonderen && gonderen.matches(ODEME_SECICI)) { engelle(e, gonderen); return; }
+    var form = e.target;
+    if (!gonderen && form && form.elements && form.elements.namedItem('checkout')) engelle(e, form.elements.namedItem('checkout'));
+  }, true);
+
+  document.addEventListener('change', function (e) {
+    var k = e.target;
+    if (!k || !k.closest || !k.closest('[data-mss-onay]') || !k.checked) return;
+    var hata = k.closest('[data-mss-onay]').querySelector('[data-mss-hata]');
+    if (hata) hata.hidden = true;
+    k.removeAttribute('aria-invalid');
+  });
+
+  // Tarayıcının kendi uyarısı yerine Türkçe uyarı
+  document.addEventListener('invalid', function (e) {
+    var k = e.target;
+    if (!k || !k.closest || !k.closest('[data-mss-onay]')) return;
+    e.preventDefault();
+    uyar(k);
+  }, true);
+})();
+</script>
