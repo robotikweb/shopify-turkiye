@@ -17,6 +17,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/kdv-dahil-etiketi.liquid` | Fiyatın altına mağazanın vergi ayarına göre "KDV dahil" (isteğe bağlı "KDV hariç") etiketi; ürün kartlarında ve sepette de kullanılır |
 | `snippets/stok-azaldi-uyarisi.liquid` | Envanteri takip edilen varyantlarda stok eşiğin altına inince "Stokta son 3 ürün kaldı" uyarısı; varyant değişince güncellenir |
 | `snippets/mesafeli-satis-onayi.liquid` | Sepette "Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'ni okudum" onay kutusu; işaretlenmeden ödemeye geçilmez, onay siparişe kaydedilir |
+| `snippets/cerez-bilgilendirme-bandi.liquid` | Çerez politikası bağlantılı, "Anladım" ile kapanan sade KVKK çerez bilgilendirme bandı; kapatılınca belirlenen süre boyunca tekrar çıkmaz |
 
 ## Kurulum
 
@@ -117,6 +118,17 @@ Seçili varyantın gerçek stoğu 1 ile `esik` (varsayılan 5) arasındaysa uyar
 ```
 
 Kutu işaretlenmeden "Ödeme" butonu ödemeye geçirmez ve Türkçe bir uyarı gösterir; işaretlendiğinde onay siparişe "Sözleşme onayı" sepet özelliği olarak kaydedilir. Bağlantılar yeni sekmede açılır. Snippet hiçbir sözleşme metni içermez; cümleyi `metin` ile değiştirebilirsiniz. Kontrol yalnızca sepet ve sepet çekmecesindedir: ürün sayfasındaki "Hemen al" ve sepetteki hızlı ödeme (Shop Pay, PayPal vb.) butonları sepeti atladığı için onları tema düzenleyiciden kapatın. Metinlerin içeriği ve sürecin yeterliliği için hukuk danışmanınıza danışın.
+
+### KVKK çerez bilgilendirme bandı
+
+Önce **Online Mağaza > Sayfalar** bölümünde çerez politikası sayfanızı kendi metninizle oluşturun. `layout/theme.liquid` dosyasında `</body>` etiketinin hemen üstüne:
+
+```liquid
+{% render 'cerez-bilgilendirme-bandi', politika_url: '/pages/cerez-politikasi' %}
+{% render 'cerez-bilgilendirme-bandi', politika_url: '/pages/cerez-politikasi', metin: 'Kendi bilgilendirme cümleniz.', konum: 'ust', sure_gun: 90, surum: '2' %}
+```
+
+Bant ilk ziyarette altta (veya `konum: 'ust'` ile üstte) görünür; "Anladım"a basılınca kapanır ve `sure_gun` (varsayılan 365) gün boyunca o tarayıcıda yeniden çıkmaz. Politikanızı güncellediğinizde `surum` değerini değiştirirseniz bant herkese yeniden gösterilir. Kapatma bilgisi çerezle değil localStorage ile tutulur. Bant yalnızca bilgilendirir: çerezleri engellemez ve onay toplamaz. Zorunlu olmayan çerezler için açık rıza gerekip gerekmediğini hukuk danışmanınızla değerlendirin; onay toplamanız gerekiyorsa Shopify'ın **Ayarlar > Müşteri gizliliği > Çerez bandı** özelliğini kullanın ve iki bandı birlikte açmayın. Varsayılan cümle yalnızca "Bu sitede çerezler kullanılmaktadır." der; kendi metninizi `metin` ile yazın.
 
 ## Türkiye için Shopify kontrol listesi
 

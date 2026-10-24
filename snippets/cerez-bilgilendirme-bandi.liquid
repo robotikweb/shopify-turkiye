@@ -1,0 +1,100 @@
+{%- comment -%}
+  Basit KVKK çerez bilgilendirme bandı (tüm sayfalarda, ekranın altında veya üstünde)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Amaç: Ziyaretçiye sitede çerez kullanıldığını kısa bir bantla bildirir ve çerez politikası
+  sayfanıza bağlantı verir. Ziyaretçi "Anladım" butonuna basınca bant kapanır ve belirlenen
+  süre boyunca o tarayıcıda yeniden gösterilmez.
+
+  Kullanım: layout/theme.liquid dosyasında </body> etiketinin hemen üstüne:
+    {% render 'cerez-bilgilendirme-bandi', politika_url: '/pages/cerez-politikasi' %}
+    {% render 'cerez-bilgilendirme-bandi', politika_url: '/pages/cerez-politikasi', metin: 'Kendi bilgilendirme cümleniz.', konum: 'ust', sure_gun: 90, surum: '2' %}
+
+  Parametreler:
+  politika_url    : Çerez politikası / aydınlatma metni sayfanızın adresi (ör. '/pages/cerez-politikasi').
+                    Boşsa bağlantı gösterilmez ve tema düzenleyicide yalnızca size bir uyarı çıkar.
+  metin           : (isteğe bağlı) Bantta görünen cümle. Varsayılan "Bu sitede çerezler kullanılmaktadır."
+                    Kendi aydınlatma metninize uygun cümleyi yazmanız önerilir.
+  politika_baslik : (isteğe bağlı) Bağlantı yazısı. Varsayılan "Çerez Politikası".
+  buton_metni     : (isteğe bağlı) Kapatma butonu yazısı. Varsayılan "Anladım".
+  konum           : (isteğe bağlı) 'alt' (varsayılan) veya 'ust'.
+  sure_gun        : (isteğe bağlı) Bant kapatıldıktan sonra kaç gün gösterilmeyeceği. Varsayılan 365.
+  surum           : (isteğe bağlı) Politikanızı değiştirdiğinizde değeri değiştirin (ör. '2');
+                    bant, daha önce kapatmış ziyaretçilere yeniden gösterilir.
+
+  Notlar:
+  - Bu bant yalnızca BİLGİLENDİRİR: çerezleri engellemez, açık rıza toplamaz ve Shopify'a onay
+    bildirmez. Zorunlu olmayan (analiz, pazarlama) çerezler için açık rıza gerekip gerekmediğini
+    ve metninizin yeterliliğini hukuk danışmanınızla değerlendirin; bu snippet hukuki danışmanlık
+    değildir ve hiçbir yasal metin içermez.
+  - Onay toplamanız gerekiyorsa Shopify'ın kendi bandını kullanın: Ayarlar > Müşteri gizliliği >
+    Çerez bandı (Settings > Customer privacy > Cookie banner). Shopify bandı Türkiye için açıksa
+    bu snippet'i kullanmayın; iki bant üst üste çıkar.
+  - Kapatma bilgisi tarayıcının localStorage alanında tutulur (çerez kullanılmaz). Tarayıcı
+    depolamaya izin vermiyorsa bant her sayfada yeniden görünür ama kapatılabilir.
+  - Bant varsayılan olarak gizli gelir ve JavaScript ile açılır; böylece daha önce kapatan
+    ziyaretçide sayfa açılırken bir an görünüp kaybolmaz. JavaScript çalışmazsa bant görünmez.
+    Tema düzenleyicide (önizleme) her zaman görünür.
+  - Telefonda sabit "Sepete ekle" çubuğu veya WhatsApp butonuyla çakışırsa o öğelerin alt
+    boşluğunu artırın ya da konum: 'ust' kullanın.
+  - Ödeme (checkout) sayfaları theme.liquid kullanmadığı için bant orada görünmez.
+  - Uygulama veya ek dosya gerektirmez.
+{%- endcomment -%}
+{%- liquid
+  assign metin = metin | default: 'Bu sitede çerezler kullanılmaktadır.'
+  assign politika_baslik = politika_baslik | default: 'Çerez Politikası'
+  assign buton_metni = buton_metni | default: 'Anladım'
+  assign sure_gun = sure_gun | default: 365 | plus: 0
+  if sure_gun < 1
+    assign sure_gun = 365
+  endif
+  assign surum = surum | default: '1' | append: ''
+  assign anahtar = 'rw-cerez-bandi-' | append: surum
+-%}
+<style>
+  .cerez-bandi { position: fixed; z-index: 1000; left: 12px; right: 12px;
+    {% if konum == 'ust' %}top: 12px;{% else %}bottom: calc(12px + env(safe-area-inset-bottom, 0px));{% endif %}
+    max-width: 960px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.25rem;
+    padding: 14px 18px; border-radius: 10px; background: #1f2421; color: #fff;
+    box-shadow: 0 6px 24px rgba(0,0,0,.22); font-size: 14px; line-height: 1.5; }
+  .cerez-bandi[hidden] { display: none; }
+  .cerez-bandi__metin { flex: 1 1 260px; margin: 0; }
+  .cerez-bandi__metin a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+  .cerez-bandi__buton { flex: 0 0 auto; min-height: 40px; padding: 0 20px; border: 0; border-radius: 6px;
+    background: #fff; color: #1f2421; font: inherit; font-weight: 600; cursor: pointer; }
+  .cerez-bandi__buton:focus-visible, .cerez-bandi__metin a:focus-visible { outline: 3px solid #e8b04a; outline-offset: 2px; }
+  @media (max-width: 749px) { .cerez-bandi__buton { width: 100%; } }
+  @media print { .cerez-bandi { display: none !important; } }
+</style>
+<div class="cerez-bandi" role="region" aria-label="Çerez bilgilendirmesi" data-cerez-bandi
+     data-anahtar="{{ anahtar | escape }}" data-sure="{{ sure_gun }}"{% unless request.design_mode %} hidden{% endunless %}>
+  <p class="cerez-bandi__metin">
+    {{ metin | escape }}
+    {%- if politika_url != blank %} <a href="{{ politika_url | escape }}">{{ politika_baslik | escape }}</a>{% endif %}
+  </p>
+  <button type="button" class="cerez-bandi__buton" data-cerez-kapat>{{ buton_metni | escape }}</button>
+  {%- if request.design_mode and politika_url == blank -%}
+    <p style="flex-basis: 100%; margin: 0; color: #ffd58a; font-size: 13px;">
+      Tema düzenleyici uyarısı: politika_url verilmedi, çerez politikası bağlantısı gösterilmiyor. (Bu uyarıyı yalnızca siz görürsünüz.)
+    </p>
+  {%- endif -%}
+</div>
+<script>
+  (function () {
+    var bant = document.querySelector('[data-cerez-bandi]');
+    if (!bant || bant.dataset.hazir) return;
+    bant.dataset.hazir = '1';
+    var anahtar = bant.dataset.anahtar;
+    var sureMs = (parseInt(bant.dataset.sure, 10) || 365) * 86400000;
+    var kapatildi = false;
+    try {
+      var zaman = parseInt(window.localStorage.getItem(anahtar), 10);
+      kapatildi = !isNaN(zaman) && Date.now() - zaman < sureMs;
+    } catch (e) {}
+    if (!kapatildi || window.Shopify && window.Shopify.designMode) bant.hidden = false;
+    bant.querySelector('[data-cerez-kapat]').addEventListener('click', function () {
+      bant.hidden = true;
+      try { window.localStorage.setItem(anahtar, String(Date.now())); } catch (e) {}
+    });
+  })();
+</script>
