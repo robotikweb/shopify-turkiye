@@ -18,6 +18,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/stok-azaldi-uyarisi.liquid` | Envanteri takip edilen varyantlarda stok eşiğin altına inince "Stokta son 3 ürün kaldı" uyarısı; varyant değişince güncellenir |
 | `snippets/mesafeli-satis-onayi.liquid` | Sepette "Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'ni okudum" onay kutusu; işaretlenmeden ödemeye geçilmez, onay siparişe kaydedilir |
 | `snippets/cerez-bilgilendirme-bandi.liquid` | Çerez politikası bağlantılı, "Anladım" ile kapanan sade KVKK çerez bilgilendirme bandı; kapatılınca belirlenen süre boyunca tekrar çıkmaz |
+| `snippets/kapida-odeme-bilgi.liquid` | Ürün sayfasında ve sepette kapıda ödeme notu; hizmet bedelini, tutar sınırlarını ve kapıda ödeme olmayan ürünleri mağaza sahibinin verdiği değerlerle gösterir |
 
 ## Kurulum
 
@@ -129,6 +130,17 @@ Kutu işaretlenmeden "Ödeme" butonu ödemeye geçirmez ve Türkçe bir uyarı g
 ```
 
 Bant ilk ziyarette altta (veya `konum: 'ust'` ile üstte) görünür; "Anladım"a basılınca kapanır ve `sure_gun` (varsayılan 365) gün boyunca o tarayıcıda yeniden çıkmaz. Politikanızı güncellediğinizde `surum` değerini değiştirirseniz bant herkese yeniden gösterilir. Kapatma bilgisi çerezle değil localStorage ile tutulur. Bant yalnızca bilgilendirir: çerezleri engellemez ve onay toplamaz. Zorunlu olmayan çerezler için açık rıza gerekip gerekmediğini hukuk danışmanınızla değerlendirin; onay toplamanız gerekiyorsa Shopify'ın **Ayarlar > Müşteri gizliliği > Çerez bandı** özelliğini kullanın ve iki bandı birlikte açmayın. Varsayılan cümle yalnızca "Bu sitede çerezler kullanılmaktadır." der; kendi metninizi `metin` ile yazın.
+
+### Kapıda ödeme bilgi notu
+
+Ürün sayfasında "Sepete ekle" butonunun altına; sepette (Dawn tabanlı temalarda `sections/main-cart-footer.liquid` ve `snippets/cart-drawer.liquid`) toplam tutarın yakınına:
+
+```liquid
+{% render 'kapida-odeme-bilgi', urun: product, odeme_secenekleri: 'Nakit veya kartla ödeyebilirsiniz.' %}
+{% render 'kapida-odeme-bilgi', sepet: true, ucret: 2500, ust_limit: 500000 %}
+```
+
+`ucret`, `alt_limit` ve `ust_limit` kuruş cinsindendir (25 TL = `2500`); verilmezse gösterilmez. `kapida-odeme-yok` etiketli ürünlerde (etiketi `haric_etiket` ile değiştirebilirsiniz) "kapıda ödeme kullanılamaz" yazar. `sepet: true` ile sepet toplamı sınırların dışındaysa veya sepette hariç ürün varsa not buna göre değişir. Snippet yalnızca bilgi verir: siparişe ücret eklemez, ödeme sayfasında kapıda ödemeyi kısıtlamaz ve hiçbir ücret veya kural varsaymaz; değerlerin ödeme sayfanız ve kargo sözleşmenizle tutarlı olduğundan emin olun. Kapıda ödemeyi **Ayarlar > Ödemeler > Manuel ödeme yöntemleri** bölümünden ayrıca açmanız gerekir. JavaScript kullanmaz.
 
 ## Türkiye için Shopify kontrol listesi
 

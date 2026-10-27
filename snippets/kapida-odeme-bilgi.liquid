@@ -1,0 +1,114 @@
+{%- comment -%}
+  Kapıda ödeme bilgi notu (ürün sayfası, sepet sayfası, sepet çekmecesi)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Kullanım:
+    Ürün sayfasında, "Sepete ekle" butonunun altına:
+      {% render 'kapida-odeme-bilgi', urun: product %}
+      {% render 'kapida-odeme-bilgi', urun: product, odeme_secenekleri: 'Nakit veya kartla ödeyebilirsiniz.', ucret: 2500 %}
+    Sepet sayfasında / sepet çekmecesinde, toplam tutarın yakınına:
+      {% render 'kapida-odeme-bilgi', sepet: true, ust_limit: 500000 %}
+
+  urun              : (isteğe bağlı) ürün nesnesi. Verilmezse sayfanın product nesnesi kullanılır.
+  sepet             : (isteğe bağlı) true verilirse not sepete göre hesaplanır (tutar sınırları ve
+                      sepetteki ürünlerin etiketleri kontrol edilir). Sepet sayfası ve çekmecesi için.
+  baslik            : (isteğe bağlı) başlık. Varsayılan "Kapıda ödeme".
+  metin             : (isteğe bağlı) açıklama. Varsayılan "Siparişinizi teslim alırken ödeyebilirsiniz."
+  odeme_secenekleri : (isteğe bağlı) kapıda hangi yollarla ödeme alındığını anlatan kendi cümleniz
+                      (ör. "Nakit veya kartla ödeyebilirsiniz."). Varsayılan yoktur; kargo firmanızın
+                      sunduğu seçenekleri siz yazın.
+  ucret             : (isteğe bağlı) kapıda ödeme hizmet bedeli, KURUŞ cinsinden (25 TL = 2500).
+                      Verilmezse veya 0 ise ücret satırı gösterilmez.
+  ucret_etiketi     : (isteğe bağlı) ücret satırının yazısı. Varsayılan "Kapıda ödeme hizmet bedeli".
+  alt_limit         : (isteğe bağlı) kapıda ödemenin geçerli olduğu en düşük sipariş tutarı, KURUŞ cinsinden.
+  ust_limit         : (isteğe bağlı) kapıda ödemenin geçerli olduğu en yüksek sipariş tutarı, KURUŞ cinsinden.
+  haric_etiket      : (isteğe bağlı) bu etiketi taşıyan ürünlerde kapıda ödeme yok sayılır.
+                      Varsayılan "kapida-odeme-yok".
+  gecersiz_metin    : (isteğe bağlı) kapıda ödeme kullanılamadığında gösterilecek yazı.
+                      Varsayılan ürün sayfasında "Bu ürün için kapıda ödeme kullanılamaz.",
+                      sepette "Bu sepet için kapıda ödeme kullanılamaz."
+
+  Notlar:
+  - Bu snippet yalnızca bilgi gösterir. Kapıda ödemeyi sunmak için Ayarlar > Ödemeler >
+    Manuel ödeme yöntemleri bölümünden kapıda ödeme yöntemini ayrıca açmalısınız.
+  - Ücret, tutar sınırları ve hariç ürünler YALNIZCA BİLGİ AMAÇLI gösterilir: snippet siparişe ücret
+    eklemez ve ödeme sayfasında kapıda ödemeyi kısıtlamaz. Ücreti nasıl tahsil ettiğinizi ve sınırları
+    nasıl uyguladığınızı kendiniz ayarlayın; burada yazan değerlerin ödeme sayfasıyla ve kargo
+    sözleşmenizle tutarlı olduğundan emin olun. Snippet hiçbir ücret, sınır veya kural varsaymaz.
+  - Ürün sayfasında sınırlar "… arasındaki siparişlerde geçerlidir" diye bilgi olarak yazılır;
+    sepet tutarına göre karar yalnızca sepet: true ile verilir. Sepette karşılaştırılan tutar
+    cart.total_price'tır (indirimler düşülmüş, kargo hariç sepet toplamı).
+  - Dawn tabanlı temalarda sepet sayfası için sections/main-cart-footer.liquid, sepet çekmecesi için
+    snippets/cart-drawer.liquid içine koyun; bu bölümler adet değişince yeniden çizildiği için not da güncellenir.
+  - Uygulama, ek dosya veya JavaScript gerektirmez.
+{%- endcomment -%}
+{%- liquid
+  assign baslik = baslik | default: 'Kapıda ödeme' | strip
+  assign metin = metin | default: 'Siparişinizi teslim alırken ödeyebilirsiniz.' | strip
+  assign odeme_secenekleri = odeme_secenekleri | default: '' | strip
+  assign ucret = ucret | default: 0 | plus: 0
+  assign ucret_etiketi = ucret_etiketi | default: 'Kapıda ödeme hizmet bedeli' | strip
+  assign alt_limit = alt_limit | default: 0 | plus: 0
+  assign ust_limit = ust_limit | default: 0 | plus: 0
+  assign haric_etiket = haric_etiket | default: 'kapida-odeme-yok' | strip
+
+  assign gecerli = true
+  assign goster = true
+
+  if sepet
+    assign gecersiz_metin = gecersiz_metin | default: 'Bu sepet için kapıda ödeme kullanılamaz.'
+    if cart.item_count == 0
+      assign goster = false
+    endif
+    if alt_limit > 0 and cart.total_price < alt_limit
+      assign gecerli = false
+    endif
+    if ust_limit > 0 and cart.total_price > ust_limit
+      assign gecerli = false
+    endif
+    if haric_etiket != blank
+      for satir in cart.items
+        if satir.product.tags contains haric_etiket
+          assign gecerli = false
+          break
+        endif
+      endfor
+    endif
+  else
+    assign urun = urun | default: product
+    assign gecersiz_metin = gecersiz_metin | default: 'Bu ürün için kapıda ödeme kullanılamaz.'
+    if urun == blank
+      assign goster = false
+    elsif haric_etiket != blank and urun.tags contains haric_etiket
+      assign gecerli = false
+    endif
+  endif
+-%}
+{%- capture limit_metni -%}
+  {%- if alt_limit > 0 and ust_limit > 0 -%}
+    {{ alt_limit | money }} ile {{ ust_limit | money }} arasındaki siparişlerde geçerlidir.
+  {%- elsif alt_limit > 0 -%}
+    {{ alt_limit | money }} ve üzerindeki siparişlerde geçerlidir.
+  {%- elsif ust_limit > 0 -%}
+    {{ ust_limit | money }} ve altındaki siparişlerde geçerlidir.
+  {%- endif -%}
+{%- endcapture -%}
+{%- if goster -%}
+<div class="kapida-odeme" style="display: flex; gap: .75rem; align-items: flex-start; margin: 1rem 0; padding: .85rem 1rem; border: 1px solid rgba(0,0,0,.12); border-radius: 8px; font-size: .9em; line-height: 1.45;{% unless gecerli %} opacity: .7;{% endunless %}">
+  <svg aria-hidden="true" focusable="false" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: .1em;">
+    <rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9.5v5M18 9.5v5"/>
+  </svg>
+  <div>
+    <p style="margin: 0; font-weight: 600;">{{ baslik | escape }}</p>
+    {%- if gecerli -%}
+      {%- if metin != blank -%}<p style="margin: .2rem 0 0;">{{ metin | escape }}</p>{%- endif -%}
+      {%- if odeme_secenekleri != blank -%}<p style="margin: .2rem 0 0;">{{ odeme_secenekleri | escape }}</p>{%- endif -%}
+      {%- if ucret > 0 -%}<p style="margin: .2rem 0 0;">{{ ucret_etiketi | escape }}: <strong>{{ ucret | money }}</strong></p>{%- endif -%}
+      {%- if limit_metni != blank -%}<p style="margin: .2rem 0 0; opacity: .75;">{{ limit_metni }}</p>{%- endif -%}
+    {%- else -%}
+      <p style="margin: .2rem 0 0;">{{ gecersiz_metin | escape }}</p>
+      {%- if sepet and limit_metni != blank -%}<p style="margin: .2rem 0 0; opacity: .75;">{{ limit_metni }}</p>{%- endif -%}
+    {%- endif -%}
+  </div>
+</div>
+{%- endif -%}
