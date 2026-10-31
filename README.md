@@ -19,6 +19,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/mesafeli-satis-onayi.liquid` | Sepette "Ön Bilgilendirme Formu ve Mesafeli Satış Sözleşmesi'ni okudum" onay kutusu; işaretlenmeden ödemeye geçilmez, onay siparişe kaydedilir |
 | `snippets/cerez-bilgilendirme-bandi.liquid` | Çerez politikası bağlantılı, "Anladım" ile kapanan sade KVKK çerez bilgilendirme bandı; kapatılınca belirlenen süre boyunca tekrar çıkmaz |
 | `snippets/kapida-odeme-bilgi.liquid` | Ürün sayfasında ve sepette kapıda ödeme notu; hizmet bedelini, tutar sınırlarını ve kapıda ödeme olmayan ürünleri mağaza sahibinin verdiği değerlerle gösterir |
+| `snippets/organizasyon-yapisal-veri.liquid` | Ana sayfaya mağazanın unvanını, logosunu, iletişim bilgilerini, adresini ve vergi numarasını Google'a bildiren Organization/OnlineStore JSON-LD verisi ekler |
 
 ## Kurulum
 
@@ -141,6 +142,17 @@ Bant ilk ziyarette altta (veya `konum: 'ust'` ile üstte) görünür; "Anladım"
 ```
 
 `ucret`, `alt_limit` ve `ust_limit` kuruş cinsindendir (25 TL = `2500`); verilmezse gösterilmez. `kapida-odeme-yok` etiketli ürünlerde (etiketi `haric_etiket` ile değiştirebilirsiniz) "kapıda ödeme kullanılamaz" yazar. `sepet: true` ile sepet toplamı sınırların dışındaysa veya sepette hariç ürün varsa not buna göre değişir. Snippet yalnızca bilgi verir: siparişe ücret eklemez, ödeme sayfasında kapıda ödemeyi kısıtlamaz ve hiçbir ücret veya kural varsaymaz; değerlerin ödeme sayfanız ve kargo sözleşmenizle tutarlı olduğundan emin olun. Kapıda ödemeyi **Ayarlar > Ödemeler > Manuel ödeme yöntemleri** bölümünden ayrıca açmanız gerekir. JavaScript kullanmaz.
+
+### Mağaza (Organization) yapılandırılmış verisi
+
+`layout/theme.liquid` dosyasında `</head>` etiketinin hemen üstüne:
+
+```liquid
+{% render 'organizasyon-yapisal-veri', telefon: '+90 212 000 00 00', eposta: 'destek@ornek.com' %}
+{% render 'organizasyon-yapisal-veri', resmi_unvan: 'Örnek Ticaret Ltd. Şti.', adres: 'Örnek Mah. Örnek Cad. No: 1', ilce: 'Kadıköy', il: 'İstanbul', posta_kodu: '34000', vergi_no: '0000000000', sosyal: 'https://www.linkedin.com/company/ornek' %}
+```
+
+Varsayılan olarak yalnızca ana sayfada, Google'ın e-ticaret siteleri için önerdiği `OnlineStore` türüyle yazılır (`tur: 'Organization'` ile değiştirilebilir). Ad, açıklama ve logo mağaza ayarlarından, sosyal medya bağlantıları tema ayarlarından gelir; unvan, telefon, e-posta, adres, vergi no ve kuruluş tarihi yalnızca siz verirseniz eklenir. `shop_adresi: true` ile adres **Ayarlar > Mağaza ayrıntıları**'ndan alınır. Dawn tabanlı temalar `sections/header.liquid` içinde her sayfaya basit bir "Organization" bloğu zaten yazar; çift kayıt olmaması için o bloğu silin ("WebSite" bloğuna dokunmayın). Girdiğiniz bilgiler sayfa kaynağında herkese açıktır ve faturalarınızdaki bilgilerle aynı olmalıdır. Kurulumdan sonra ana sayfanızı Google'ın Zengin Sonuçlar Testi ile kontrol edin. JavaScript kullanmaz.
 
 ## Türkiye için Shopify kontrol listesi
 

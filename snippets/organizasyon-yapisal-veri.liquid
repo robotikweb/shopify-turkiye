@@ -1,0 +1,199 @@
+{%- comment -%}
+  Mağaza (Organization / OnlineStore) JSON-LD yapılandırılmış verisi
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Amaç: Google'a mağazanızın resmî unvanını, logosunu, iletişim bilgilerini, adresini, vergi numarasını
+  ve sosyal medya hesaplarını yapılandırılmış veri olarak bildirmek. Görünür bir çıktı üretmez.
+
+  Kullanım: layout/theme.liquid dosyasında </head> etiketinin hemen üstüne:
+    {% render 'organizasyon-yapisal-veri', telefon: '+90 212 000 00 00', eposta: 'destek@ornek.com' %}
+    {% render 'organizasyon-yapisal-veri',
+      resmi_unvan: 'Örnek Ticaret Ltd. Şti.',
+      telefon: '+90 212 000 00 00',
+      eposta: 'destek@ornek.com',
+      adres: 'Örnek Mah. Örnek Cad. No: 1',
+      ilce: 'Kadıköy',
+      il: 'İstanbul',
+      posta_kodu: '34000',
+      vergi_no: '0000000000',
+      sosyal: 'https://www.linkedin.com/company/ornek'
+    %}
+
+  tur          : (isteğe bağlı) schema.org türü. Varsayılan 'OnlineStore' (Google e-ticaret siteleri için
+                 bunu önerir). Fiziksel mağazanız ağırlıktaysa 'Organization' veya uygun bir
+                 LocalBusiness alt türü (ör. 'ClothingStore') yazabilirsiniz.
+  ad           : (isteğe bağlı) marka adı. Varsayılan mağaza adı (shop.name).
+  resmi_unvan  : (isteğe bağlı) ticaret sicilindeki resmî unvan (legalName). Marka adından farklıysa yazın.
+  aciklama     : (isteğe bağlı) kısa tanıtım. Varsayılan mağazanın meta açıklaması (shop.description).
+  logo         : (isteğe bağlı) logonun tam adresi (https://...). Verilmezse tema ayarlarındaki logo
+                 (settings.logo) kullanılır; tema logosu yoksa logo yazılmaz.
+  telefon      : (isteğe bağlı) ülke koduyla telefon (ör. '+90 212 000 00 00').
+  eposta       : (isteğe bağlı) müşterilerin yazabileceği e-posta adresi.
+  adres        : (isteğe bağlı) mahalle, cadde/sokak ve numara (streetAddress).
+  ilce         : (isteğe bağlı) ilçe (addressLocality).
+  il           : (isteğe bağlı) il (addressRegion).
+  posta_kodu   : (isteğe bağlı) posta kodu.
+  ulke         : (isteğe bağlı) iki harfli ülke kodu. Varsayılan 'TR'.
+  shop_adresi  : (isteğe bağlı) true verilirse adres alanları Ayarlar > Mağaza ayrıntıları'ndaki adresten
+                 (shop.address) doldurulur. Ayrı ayrı verdiğiniz alanlar her zaman önceliklidir.
+  vergi_no     : (isteğe bağlı) vergi kimlik numarası (taxID).
+  kurulus_tarihi : (isteğe bağlı) kuruluş tarihi, YYYY-AA-GG biçiminde (ör. '2019-05-01').
+  sosyal       : (isteğe bağlı) ek profil bağlantıları, virgülle ayrılmış tam adresler (sameAs).
+  tema_sosyal  : (isteğe bağlı) false verilirse tema ayarlarındaki sosyal medya bağlantıları eklenmez.
+                 Varsayılan olarak Dawn tabanlı temaların settings.social_*_link alanları eklenir.
+  her_sayfada  : (isteğe bağlı) true verilirse veri her sayfada yazılır. Varsayılan yalnızca ana sayfa
+                 (Google bu verinin ana sayfada veya "Hakkımızda" sayfasında olmasını yeterli bulur).
+
+  Notlar:
+  - Snippet hiçbir bilgi uydurmaz: verilmeyen alan JSON-LD'ye yazılmaz. Unvan, adres, vergi no ve
+    iletişim bilgilerinin faturalarınızdaki ve yasal sayfalarınızdaki bilgilerle aynı olduğundan emin olun.
+  - Google'a göre hiçbir alan zorunlu değildir; ancak "ad" mağazanızın site adıyla aynı olmalı, logo en az
+    112x112 piksel olmalı ve beyaz arka planda düzgün görünmelidir.
+  - Dawn ve türevleri sections/header.liquid içinde her sayfaya basit bir "Organization" bloğu zaten
+    yazar. Çift kayıt olmaması için o dosyadaki "@type": "Organization" içeren <script type="application/ld+json">
+    bloğunu silin (hemen altındaki "WebSite" bloğuna dokunmayın).
+  - Telefon, e-posta, adres ve vergi numarası sayfa kaynağında herkese açık olarak yer alır; yalnızca
+    zaten yayımladığınız bilgileri girin.
+  - Kurulumdan sonra ana sayfanızı Google'ın Zengin Sonuçlar Testi (search.google.com/test/rich-results)
+    veya validator.schema.org ile kontrol edin. Verinin Google'da görünmesi garanti değildir.
+  - Uygulama, ek dosya veya JavaScript gerektirmez.
+{%- endcomment -%}
+{%- liquid
+  assign goster = false
+  if her_sayfada or request.page_type == 'index'
+    assign goster = true
+  endif
+
+  assign tur = tur | default: 'OnlineStore' | strip
+  assign ad = ad | default: shop.name | strip
+  assign resmi_unvan = resmi_unvan | default: '' | strip
+  assign aciklama = aciklama | default: shop.description | default: '' | strip_html | strip
+  assign telefon = telefon | default: '' | strip
+  assign eposta = eposta | default: '' | strip
+  assign vergi_no = vergi_no | default: '' | strip
+  assign kurulus_tarihi = kurulus_tarihi | default: '' | strip
+  assign site_adresi = shop.url | default: request.origin
+
+  if logo != blank
+    assign logo_adresi = logo | strip
+  elsif settings.logo != blank
+    assign logo_adresi = settings.logo | image_url: width: 600 | prepend: 'https:'
+  else
+    assign logo_adresi = ''
+  endif
+
+  assign adres = adres | default: '' | strip
+  assign ilce = ilce | default: '' | strip
+  assign il = il | default: '' | strip
+  assign posta_kodu = posta_kodu | default: '' | strip
+  assign ulke = ulke | default: '' | strip
+  if shop_adresi and shop.address != blank
+    if adres == blank
+      assign adres = shop.address.address1 | default: '' | strip
+      if shop.address.address2 != blank
+        assign adres = adres | append: ' ' | append: shop.address.address2 | strip
+      endif
+    endif
+    if ilce == blank
+      assign ilce = shop.address.city | default: '' | strip
+    endif
+    if il == blank
+      assign il = shop.address.province | default: '' | strip
+    endif
+    if posta_kodu == blank
+      assign posta_kodu = shop.address.zip | default: '' | strip
+    endif
+    if ulke == blank
+      assign ulke = shop.address.country_code | default: '' | strip
+    endif
+  endif
+  assign ulke = ulke | default: 'TR' | upcase
+  assign adres_var = false
+  if adres != blank or ilce != blank or il != blank or posta_kodu != blank
+    assign adres_var = true
+  endif
+
+  assign baglantilar = ''
+  if tema_sosyal != false
+    assign tema_baglantilari = settings.social_twitter_link | append: ',' | append: settings.social_facebook_link | append: ',' | append: settings.social_pinterest_link | append: ',' | append: settings.social_instagram_link | append: ',' | append: settings.social_tiktok_link | append: ',' | append: settings.social_tumblr_link | append: ',' | append: settings.social_snapchat_link | append: ',' | append: settings.social_youtube_link | append: ',' | append: settings.social_vimeo_link
+    assign baglantilar = baglantilar | append: tema_baglantilari | append: ','
+  endif
+  if sosyal != blank
+    assign baglantilar = baglantilar | append: sosyal
+  endif
+  assign sosyal_liste = '' | split: ','
+  assign parcalar = baglantilar | split: ','
+  for parca in parcalar
+    assign temiz = parca | strip
+    if temiz contains 'http'
+      assign tek = temiz | split: '§§§'
+      assign sosyal_liste = sosyal_liste | concat: tek
+    endif
+  endfor
+  assign sosyal_liste = sosyal_liste | uniq
+-%}
+{%- if goster -%}
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": {{ tur | json }},
+    "@id": {{ site_adresi | append: '/#organization' | json }},
+    "name": {{ ad | json }},
+    "url": {{ site_adresi | json }}
+    {%- if resmi_unvan != blank -%},
+    "legalName": {{ resmi_unvan | json }}
+    {%- endif -%}
+    {%- if aciklama != blank -%},
+    "description": {{ aciklama | json }}
+    {%- endif -%}
+    {%- if logo_adresi != blank -%},
+    "logo": {{ logo_adresi | json }}
+    {%- endif -%}
+    {%- if telefon != blank -%},
+    "telephone": {{ telefon | json }}
+    {%- endif -%}
+    {%- if eposta != blank -%},
+    "email": {{ eposta | json }}
+    {%- endif -%}
+    {%- if telefon != blank or eposta != blank -%},
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "contactType": "customer service"
+      {%- if telefon != blank -%},
+      "telephone": {{ telefon | json }}
+      {%- endif -%}
+      {%- if eposta != blank -%},
+      "email": {{ eposta | json }}
+      {%- endif %}
+    }
+    {%- endif -%}
+    {%- if adres_var -%},
+    "address": {
+      "@type": "PostalAddress",
+      "addressCountry": {{ ulke | json }}
+      {%- if adres != blank -%},
+      "streetAddress": {{ adres | json }}
+      {%- endif -%}
+      {%- if ilce != blank -%},
+      "addressLocality": {{ ilce | json }}
+      {%- endif -%}
+      {%- if il != blank -%},
+      "addressRegion": {{ il | json }}
+      {%- endif -%}
+      {%- if posta_kodu != blank -%},
+      "postalCode": {{ posta_kodu | json }}
+      {%- endif %}
+    }
+    {%- endif -%}
+    {%- if vergi_no != blank -%},
+    "taxID": {{ vergi_no | json }}
+    {%- endif -%}
+    {%- if kurulus_tarihi != blank -%},
+    "foundingDate": {{ kurulus_tarihi | json }}
+    {%- endif -%}
+    {%- if sosyal_liste.size > 0 -%},
+    "sameAs": {{ sosyal_liste | json }}
+    {%- endif %}
+  }
+</script>
+{%- endif -%}
