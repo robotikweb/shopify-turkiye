@@ -20,6 +20,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/cerez-bilgilendirme-bandi.liquid` | Çerez politikası bağlantılı, "Anladım" ile kapanan sade KVKK çerez bilgilendirme bandı; kapatılınca belirlenen süre boyunca tekrar çıkmaz |
 | `snippets/kapida-odeme-bilgi.liquid` | Ürün sayfasında ve sepette kapıda ödeme notu; hizmet bedelini, tutar sınırlarını ve kapıda ödeme olmayan ürünleri mağaza sahibinin verdiği değerlerle gösterir |
 | `snippets/organizasyon-yapisal-veri.liquid` | Ana sayfaya mağazanın unvanını, logosunu, iletişim bilgilerini, adresini ve vergi numarasını Google'a bildiren Organization/OnlineStore JSON-LD verisi ekler |
+| `snippets/son-goruntulenen-urunler.liquid` + `assets/son-goruntulenen.js` | Ziyaretçinin baktığı ürünleri tarayıcısında hatırlayıp "Son görüntülediğiniz ürünler" listesi olarak gösterir; ad, görsel, fiyat ve stok durumu her seferinde güncel alınır |
 
 ## Kurulum
 
@@ -153,6 +154,17 @@ Bant ilk ziyarette altta (veya `konum: 'ust'` ile üstte) görünür; "Anladım"
 ```
 
 Varsayılan olarak yalnızca ana sayfada, Google'ın e-ticaret siteleri için önerdiği `OnlineStore` türüyle yazılır (`tur: 'Organization'` ile değiştirilebilir). Ad, açıklama ve logo mağaza ayarlarından, sosyal medya bağlantıları tema ayarlarından gelir; unvan, telefon, e-posta, adres, vergi no ve kuruluş tarihi yalnızca siz verirseniz eklenir. `shop_adresi: true` ile adres **Ayarlar > Mağaza ayrıntıları**'ndan alınır. Dawn tabanlı temalar `sections/header.liquid` içinde her sayfaya basit bir "Organization" bloğu zaten yazar; çift kayıt olmaması için o bloğu silin ("WebSite" bloğuna dokunmayın). Girdiğiniz bilgiler sayfa kaynağında herkese açıktır ve faturalarınızdaki bilgilerle aynı olmalıdır. Kurulumdan sonra ana sayfanızı Google'ın Zengin Sonuçlar Testi ile kontrol edin. JavaScript kullanmaz.
+
+### Son görüntülenen ürünler
+
+`assets/son-goruntulenen.js` dosyasını da yükleyin. Ürün sayfasına (Dawn tabanlı temalarda `sections/main-product.liquid` dosyasının sonuna veya ürün şablonunda bir "Özel Liquid" bloğuna) mutlaka ekleyin; isterseniz ana sayfa veya sepete de "Özel Liquid" bölümüyle ekleyin:
+
+```liquid
+{% render 'son-goruntulenen-urunler' %}
+{% render 'son-goruntulenen-urunler', adet: 6, baslik: 'Göz attığınız ürünler', fiyat: false %}
+```
+
+Ürün sayfasında açılan ürün listeye kaydedilir ve o sayfadaki listede gösterilmez. Ürünler yalnızca ürün sayfasında kaydedildiği için snippet'i yalnızca ana sayfaya eklerseniz liste dolmaz. Gösterilecek ürün yoksa kutu hiç görünmez. Ad, görsel, fiyat ve stok durumu her gösterimde Shopify'ın Ajax Product API'sinden güncel alınır; silinen veya yayından kaldırılan ürünler listeden kendiliğinden çıkar. Tarayıcıda (localStorage) en fazla 20 ürünün yalnızca adres kısaltması (handle) tutulur; sunucuya veya çereze veri yazılmaz. Gizli sekmede liste tutulmaz. Kartlar sade satır içi stille çizilir, temanızın ürün kartını kullanmaz.
 
 ## Türkiye için Shopify kontrol listesi
 

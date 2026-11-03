@@ -1,0 +1,75 @@
+{%- comment -%}
+  Son görüntülenen ürünler (ürün sayfası, ana sayfa, sepet veya koleksiyon sayfası)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Amaç: Ziyaretçinin baktığı ürünleri tarayıcısında hatırlar ve "Son görüntülediğiniz ürünler"
+  listesi olarak gösterir. Kararsız kalan müşterinin baktığı ürüne geri dönmesini kolaylaştırır.
+  Uygulama gerektirmez; ürün listesi yalnızca ziyaretçinin kendi tarayıcısında (localStorage) tutulur.
+
+  Kullanım:
+    Ürün sayfasında (Dawn tabanlı temalarda sections/main-product.liquid dosyasının en sonuna
+    veya ürün şablonuna eklediğiniz bir "Özel Liquid" bloğuna):
+      {% render 'son-goruntulenen-urunler' %}
+    Ana sayfa, sepet veya koleksiyon sayfasında ("Özel Liquid" bölümü ile):
+      {% render 'son-goruntulenen-urunler', adet: 6, baslik: 'Göz attığınız ürünler' %}
+      {% render 'son-goruntulenen-urunler', fiyat: false %}
+
+  Parametreler:
+  baslik          : (isteğe bağlı) Liste başlığı. Varsayılan "Son görüntülediğiniz ürünler".
+  adet            : (isteğe bağlı) Gösterilecek en fazla ürün sayısı (1–12). Varsayılan 4.
+  fiyat           : (isteğe bağlı) false verilirse fiyat gösterilmez. Varsayılan true.
+  tukendi_metni   : (isteğe bağlı) Stokta olmayan ürünlerde görünen yazı. Varsayılan "Tükendi".
+  baslangic_metni : (isteğe bağlı) Varyantları farklı fiyatlı ürünlerde fiyat yazısı; [fiyat] yerine
+                    en düşük fiyat konur. Varsayılan "Başlangıç: [fiyat]".
+
+  Notlar:
+  - Snippet ürün sayfasında render edildiğinde o ürünü listeye kaydeder ve listede o ürünü göstermez.
+    Ürünlerin kaydedilmesi için snippet'in ürün sayfasında MUTLAKA bulunması gerekir; yalnızca ana
+    sayfaya eklerseniz liste hiç dolmaz.
+  - İlk ziyarette veya gösterilecek ürün yoksa kutu hiç görünmez (boş başlık çıkmaz).
+  - Ürün adı, görseli, fiyatı ve stok durumu her gösterimde Shopify'ın Ajax Product API'sinden
+    (/products/<handle>.js) güncel alınır; eski fiyat gösterilmez. Silinen veya yayından kaldırılan
+    ürünler listeden kendiliğinden çıkar. Fiyatlar müşterinin gördüğü para biriminde gelir.
+  - Tarayıcıda en fazla 20 ürünün yalnızca handle'ı (adres kısaltması) saklanır; sunucuya, çereze
+    veya üçüncü bir tarafa veri gönderilmez. Gizli sekmede veya depolamayı kapatan tarayıcılarda
+    liste tutulmaz, kutu görünmez. Çerez/depolama politikanızda localStorage kullanımına yer verin.
+  - Ürün kartları satır içi sade stille çizilir; temanızın ürün kartı tasarımını kullanmaz.
+  - Gerekli dosya: assets/son-goruntulenen.js
+{%- endcomment -%}
+{%- liquid
+  assign baslik = baslik | default: 'Son görüntülediğiniz ürünler'
+  assign adet = adet | default: 4 | plus: 0
+  if adet < 1
+    assign adet = 4
+  elsif adet > 12
+    assign adet = 12
+  endif
+  assign fiyat_goster = true
+  if fiyat == false
+    assign fiyat_goster = false
+  endif
+  assign tukendi_metni = tukendi_metni | default: 'Tükendi'
+  assign baslangic_metni = baslangic_metni | default: 'Başlangıç: [fiyat]'
+
+  assign kaydedilecek = ''
+  if template.name == 'product' and product != blank
+    assign kaydedilecek = product.handle
+  endif
+-%}
+<section class="son-goruntulenen" hidden
+  data-son-goruntulenen
+  data-kok="{{ routes.root_url }}"
+  data-adet="{{ adet }}"
+  data-fiyat="{{ fiyat_goster }}"
+  data-para-birimi="{{ cart.currency.iso_code }}"
+  data-dil="{{ request.locale.iso_code | default: 'tr' }}"
+  data-tukendi="{{ tukendi_metni | escape }}"
+  data-baslangic="{{ baslangic_metni | escape }}"
+  {% if kaydedilecek != blank %}data-kaydet="{{ kaydedilecek | escape }}" data-haric="{{ kaydedilecek | escape }}"{% endif %}
+  aria-label="{{ baslik | escape }}"
+  style="max-width: 1200px; margin: 2.5rem auto; padding: 0 1.5rem;">
+  <h2 style="margin: 0 0 1rem; font-size: 1.25em;">{{ baslik | escape }}</h2>
+  <ul data-son-goruntulenen-liste role="list"
+      style="list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));"></ul>
+</section>
+<script src="{{ 'son-goruntulenen.js' | asset_url }}" defer></script>
