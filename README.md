@@ -174,4 +174,4 @@ Hata bildirimi ve önerileriniz için issue açabilir veya pull request göndere
 
 ## Lisans
 
-MIT. Ticari projelerde dahil serbestçe kullanabilir ve değiştirebilirsiniz.
+MIT. Ticari projeler dahil serbestçe kullanabilir ve değiştirebilirsiniz.
