@@ -1,0 +1,236 @@
+{%- comment -%}
+  Taksit bilgi tablosu (ürün sayfası)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Amaç: Ürün sayfasında, mağaza sahibinin girdiği banka/kart programları, taksit sayıları ve
+  vade farkı oranlarıyla "3 taksit × 345,00 TL, toplam 1.035,00 TL" biçiminde bir taksit tablosu
+  gösterir. Varyant değişince tutarlar yeni fiyata göre yeniden hesaplanır. Uygulama gerektirmez.
+
+  Kullanım (ürün sayfasında, fiyatın veya "Sepete ekle" butonunun altına):
+    {% render 'taksit-tablosu', urun: product %}
+    {% render 'taksit-tablosu', urun: product, tablo: 'Banka A: 2=0 3=0 6=4,5; Banka B: 2=0 3=1,2' %}
+    {% render 'taksit-tablosu', urun: product, acik: true, en_az_taksit: 10000 %}
+
+  Tablo biçimi (her satır bir banka/kart programı; satırlar alt satıra geçerek veya ";" ile ayrılır):
+    Program adı: taksit=oran taksit=oran ...
+    Örnek: Banka A: 2=0 3=0 6=4,5 9=7,25
+  - taksit : taksit sayısı (2–36 arası tam sayı).
+  - oran   : fiyata eklenen TOPLAM vade farkı yüzdesi (aylık değil). 0 = peşin fiyatına.
+             Ondalık için virgül veya nokta kullanılabilir (4,5 veya 4.5). "%" işareti yazılabilir.
+  - Girdiler boşlukla ayrılır; "=" işaretinin iki yanında boşluk bırakmayın.
+  Bu ÖRNEKTEKİ ADLAR VE ORANLAR GERÇEK DEĞİLDİR. Kendi ödeme kuruluşunuzun (iyzico, PayTR, Param vb.)
+  panelinde müşteriye yansıttığınız güncel oranları siz girin.
+
+  Tablonun alındığı yer (ilk dolu olan kullanılır):
+    1. tablo parametresi
+    2. Ürün metafield'ı  : custom.taksit_tablosu (Çok satırlı metin) — ürüne özel tablo için
+    3. Mağaza metafield'ı: custom.taksit_tablosu (Çok satırlı metin) — tüm ürünler için tek tablo
+       (Tanım: Ayarlar > Meta alanlar ve meta nesneler > Mağaza; değer: Ayarlar > Genel sayfasının
+       altındaki meta alanlar bölümü.)
+  Hiçbiri dolu değilse tablo görünmez; snippet varsayılan bir oran veya banka içermez.
+
+  Parametreler:
+  urun          : (isteğe bağlı) ürün nesnesi. Verilmezse sayfanın product nesnesi kullanılır.
+  tablo         : (isteğe bağlı) yukarıdaki biçimde tablo metni.
+  baslik        : (isteğe bağlı) açılır kutunun başlığı. Varsayılan "Taksit seçenekleri".
+  acik          : (isteğe bağlı) true verilirse kutu açık gelir. Varsayılan kapalı.
+  en_az_taksit  : (isteğe bağlı) KURUŞ cinsinden en düşük taksit tutarı (100 TL = 10000). Taksit tutarı
+                  bunun altında kalan satırlar gizlenir. Ödeme kuruluşunuzun alt sınırını siz girin.
+  haric_etiket  : (isteğe bağlı) bu etiketi taşıyan ürünlerde tablo gösterilmez. Varsayılan "taksit-yok".
+  para_birimi   : (isteğe bağlı) tablonun gösterileceği para birimi. Varsayılan "TRY"; müşteri başka para
+                  biriminde geziyorsa tablo gizlenir. "hepsi" verilirse her para biriminde gösterilir.
+  pesin_metin   : (isteğe bağlı) oranı 0 olan satırlarda görünen yazı. Varsayılan "Peşin fiyatına".
+                  false verilirse gösterilmez.
+  not_metni     : (isteğe bağlı) tablonun altındaki not. Varsayılan "Tutarlar bilgi amaçlıdır; kesin
+                  tutarlar ödeme adımında gösterilir." false verilirse gösterilmez.
+
+  Notlar:
+  - Tutarlar seçili varyantın fiyatından hesaplanır: toplam = fiyat × (100 + oran) / 100,
+    taksit tutarı = toplam / taksit sayısı (kuruşa yuvarlanır). Ödeme kuruluşunuzun yuvarlaması
+    birkaç kuruş farklı olabilir.
+  - Bu tablo YALNIZCA BİLGİ AMAÇLIDIR: ödeme sayfasındaki taksitleri, oranları veya sınırları değiştirmez.
+    Girdiğiniz değerlerin ödeme sayfasında müşterinin gördüğüyle aynı olmasından siz sorumlusunuz;
+    oranlarınız veya kampanyalarınız değiştiğinde metafield'ı güncelleyin. Bazı ürün gruplarında taksit
+    sayısı mevzuatla sınırlıdır; bu kuralları snippet uygulamaz, ilgili ürünlerde haric_etiket kullanın
+    ya da ürüne özel tablo girin.
+  - Tema düzenleyicide (önizlemede) biçimi hatalı girdiler yalnızca size bir uyarı olarak gösterilir.
+  - Çok varyantlı ürünlerde varyant değişince tablo güncellenir; snippet sepete ekleme formundaki
+    name="id" alanını izler (Dawn ve türevlerinde bu alan varyant değişince güncellenir).
+  - Gerekli dosya: assets/taksit-tablosu.js
+{%- endcomment -%}
+{%- liquid
+  assign urun = urun | default: product
+  assign baslik = baslik | default: 'Taksit seçenekleri'
+  assign haric_etiket = haric_etiket | default: 'taksit-yok' | strip
+  assign en_az_taksit = en_az_taksit | default: 0 | plus: 0
+  assign para_birimi = para_birimi | default: 'TRY' | strip
+
+  assign pesin_goster = true
+  if pesin_metin == false
+    assign pesin_goster = false
+  endif
+  assign pesin_metin = pesin_metin | default: 'Peşin fiyatına'
+  assign not_goster = true
+  if not_metni == false
+    assign not_goster = false
+  endif
+  assign not_metni = not_metni | default: 'Tutarlar bilgi amaçlıdır; kesin tutarlar ödeme adımında gösterilir.'
+
+  assign kaynak = tablo
+  if kaynak == blank
+    assign kaynak = urun.metafields.custom.taksit_tablosu.value
+  endif
+  if kaynak == blank
+    assign kaynak = shop.metafields.custom.taksit_tablosu.value
+  endif
+
+  assign secili = urun.selected_or_first_available_variant
+  assign fiyat = secili.price | default: 0
+
+  assign goster = true
+  if urun == blank or kaynak == blank or fiyat <= 0
+    assign goster = false
+  elsif haric_etiket != blank and urun.tags contains haric_etiket
+    assign goster = false
+  elsif para_birimi != 'hepsi' and cart.currency.iso_code != para_birimi
+    assign goster = false
+  endif
+
+  assign para_bicimi = ''
+  if cart.currency.iso_code == shop.currency
+    assign para_bicimi = shop.money_format
+  endif
+-%}
+{%- if goster -%}
+  {%- liquid
+    assign satirlar = kaynak | newline_to_br | strip_newlines | replace: '<br />', ';' | replace: '<br>', ';' | split: ';'
+    assign hatalar = ''
+    assign herhangi_gorunur = false
+  -%}
+  {%- capture programlar_html -%}
+    {%- for satir in satirlar -%}
+      {%- assign satir_temiz = satir | strip -%}
+      {%- if satir_temiz == blank -%}{%- continue -%}{%- endif -%}
+      {%- assign parcalar = satir_temiz | split: ':' -%}
+      {%- if parcalar.size != 2 -%}
+        {%- assign hatalar = hatalar | append: satir_temiz | append: '|' -%}
+        {%- continue -%}
+      {%- endif -%}
+      {%- assign program = parcalar[0] | strip -%}
+      {%- assign girdiler = parcalar[1] | split: ' ' -%}
+      {%- assign program_gorunur = false -%}
+      {%- capture satir_html -%}
+        {%- for girdi in girdiler -%}
+          {%- liquid
+            assign g = girdi | strip
+            if g == blank or g == ','
+              continue
+            endif
+            assign son_karakter = g | slice: -1
+            if son_karakter == ','
+              assign g_uzunluk = g | size | minus: 1
+              assign g = g | slice: 0, g_uzunluk
+            endif
+            assign ikili = g | split: '='
+            assign gecerli = true
+            if ikili.size != 2
+              assign gecerli = false
+            else
+              assign n_str = ikili[0] | strip
+              assign oran_str = ikili[1] | strip | remove: '%' | replace: ',', '.'
+              assign n_kalan = n_str | remove: '0' | remove: '1' | remove: '2' | remove: '3' | remove: '4' | remove: '5' | remove: '6' | remove: '7' | remove: '8' | remove: '9'
+              assign oran_kalan = oran_str | remove: '0' | remove: '1' | remove: '2' | remove: '3' | remove: '4' | remove: '5' | remove: '6' | remove: '7' | remove: '8' | remove: '9' | remove: '.'
+              assign oran_nokta = oran_str | split: '.' | size
+              assign oran_ilk = oran_str | slice: 0
+              assign oran_son = oran_str | slice: -1
+              if n_str == blank or n_kalan != '' or oran_str == blank or oran_kalan != '' or oran_nokta > 2 or oran_ilk == '.' or oran_son == '.'
+                assign gecerli = false
+              else
+                assign n = n_str | plus: 0
+                assign oran = oran_str | plus: 0
+                if n < 2 or n > 36
+                  assign gecerli = false
+                endif
+              endif
+            endif
+            unless gecerli
+              assign hatalar = hatalar | append: program | append: ': ' | append: g | append: '|'
+              continue
+            endunless
+
+            assign carpan = oran | plus: 100
+            assign toplam = fiyat | times: carpan | divided_by: 100.0 | round
+            assign taksit_tutari = toplam | times: 1.0 | divided_by: n | round
+            assign satir_gorunur = true
+            if en_az_taksit > 0 and taksit_tutari < en_az_taksit
+              assign satir_gorunur = false
+            else
+              assign program_gorunur = true
+            endif
+          -%}
+          <tr data-n="{{ n }}" data-oran="{{ oran_str }}"{% unless satir_gorunur %} hidden{% endunless %}>
+            <td style="padding: .4rem .5rem .4rem 0; border-top: 1px solid rgba(0,0,0,.08);">
+              {{ n }} taksit
+              {%- if pesin_goster and oran == 0 -%}<span style="display: block; font-size: .85em; opacity: .7;">{{ pesin_metin | escape }}</span>{%- endif -%}
+            </td>
+            <td data-taksit-tutar style="padding: .4rem .5rem; border-top: 1px solid rgba(0,0,0,.08); text-align: right; font-weight: 600; white-space: nowrap;">{{ taksit_tutari | money }}</td>
+            <td data-taksit-toplam style="padding: .4rem 0 .4rem .5rem; border-top: 1px solid rgba(0,0,0,.08); text-align: right; white-space: nowrap; opacity: .75;">{{ toplam | money }}</td>
+          </tr>
+        {%- endfor -%}
+      {%- endcapture -%}
+      {%- if satir_html contains '<tr' -%}
+        {%- if program_gorunur -%}{%- assign herhangi_gorunur = true -%}{%- endif -%}
+        <table data-taksit-program{% unless program_gorunur %} hidden{% endunless %} style="width: 100%; border-collapse: collapse; font-size: .9em; line-height: 1.35;">
+          <caption style="text-align: left; font-weight: 600; padding-bottom: .35rem;">{{ program | escape }}</caption>
+          <thead>
+            <tr style="font-size: .85em; opacity: .7;">
+              <th scope="col" style="text-align: left; font-weight: 500; padding: 0 .5rem .25rem 0;">Taksit</th>
+              <th scope="col" style="text-align: right; font-weight: 500; padding: 0 .5rem .25rem;">Taksit tutarı</th>
+              <th scope="col" style="text-align: right; font-weight: 500; padding: 0 0 .25rem .5rem;">Toplam</th>
+            </tr>
+          </thead>
+          <tbody>{{ satir_html }}</tbody>
+        </table>
+      {%- endif -%}
+    {%- endfor -%}
+  {%- endcapture -%}
+
+  {%- if request.design_mode and hatalar != blank -%}
+    <div style="margin: .75rem 0; padding: .6rem .8rem; border: 1px dashed #b42318; border-radius: 6px; color: #b42318; font-size: .85em;">
+      Taksit tablosu (yalnızca tema düzenleyicide görünür): şu girdiler biçime uymadığı için atlandı.
+      Biçim: <code>Program adı: 2=0 3=0 6=4,5</code>
+      <ul style="margin: .3rem 0 0 1rem; padding: 0;">
+        {%- assign hata_listesi = hatalar | split: '|' -%}
+        {%- for h in hata_listesi -%}<li>{{ h | escape }}</li>{%- endfor -%}
+      </ul>
+    </div>
+  {%- endif -%}
+
+  {%- if programlar_html contains 'data-taksit-program' -%}
+    <details class="taksit-tablosu" data-taksit-tablosu
+      data-secili="{{ secili.id }}"
+      data-bicim="{{ para_bicimi | escape }}"
+      data-para-birimi="{{ cart.currency.iso_code }}"
+      data-dil="{{ request.locale.iso_code | default: 'tr' }}"
+      data-en-az-taksit="{{ en_az_taksit }}"
+      {% if acik == true %}open{% endif %}
+      {% unless herhangi_gorunur %}hidden{% endunless %}
+      style="margin: 1rem 0; border: 1px solid rgba(0,0,0,.12); border-radius: 8px;">
+      <summary style="cursor: pointer; padding: .75rem 1rem; font-weight: 600;">{{ baslik | escape }}</summary>
+      <div style="display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); padding: 0 1rem 1rem;">
+        {{ programlar_html }}
+      </div>
+      {%- if not_goster and not_metni != blank -%}
+        <p style="margin: 0; padding: 0 1rem 1rem; font-size: .8em; opacity: .7;">{{ not_metni | escape }}</p>
+      {%- endif -%}
+      <script type="application/json" data-taksit-varyantlar>
+        {
+          {%- for v in urun.variants -%}
+            "{{ v.id }}": {{ v.price | default: 0 }}{% unless forloop.last %},{% endunless %}
+          {%- endfor -%}
+        }
+      </script>
+    </details>
+    <script src="{{ 'taksit-tablosu.js' | asset_url }}" defer></script>
+  {%- endif -%}
+{%- endif -%}

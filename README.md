@@ -21,6 +21,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/kapida-odeme-bilgi.liquid` | Ürün sayfasında ve sepette kapıda ödeme notu; hizmet bedelini, tutar sınırlarını ve kapıda ödeme olmayan ürünleri mağaza sahibinin verdiği değerlerle gösterir |
 | `snippets/organizasyon-yapisal-veri.liquid` | Ana sayfaya mağazanın unvanını, logosunu, iletişim bilgilerini, adresini ve vergi numarasını Google'a bildiren Organization/OnlineStore JSON-LD verisi ekler |
 | `snippets/son-goruntulenen-urunler.liquid` + `assets/son-goruntulenen.js` | Ziyaretçinin baktığı ürünleri tarayıcısında hatırlayıp "Son görüntülediğiniz ürünler" listesi olarak gösterir; ad, görsel, fiyat ve stok durumu her seferinde güncel alınır |
+| `snippets/taksit-tablosu.liquid` + `assets/taksit-tablosu.js` | Ürün sayfasında, sizin girdiğiniz banka/kart programları ve vade farkı oranlarıyla taksit tutarı ve toplamı gösteren açılır tablo; varyant değişince yeniden hesaplanır |
 
 ## Kurulum
 
@@ -165,6 +166,25 @@ Varsayılan olarak yalnızca ana sayfada, Google'ın e-ticaret siteleri için ö
 ```
 
 Ürün sayfasında açılan ürün listeye kaydedilir ve o sayfadaki listede gösterilmez. Ürünler yalnızca ürün sayfasında kaydedildiği için snippet'i yalnızca ana sayfaya eklerseniz liste dolmaz. Gösterilecek ürün yoksa kutu hiç görünmez. Ad, görsel, fiyat ve stok durumu her gösterimde Shopify'ın Ajax Product API'sinden güncel alınır; silinen veya yayından kaldırılan ürünler listeden kendiliğinden çıkar. Tarayıcıda (localStorage) en fazla 20 ürünün yalnızca adres kısaltması (handle) tutulur; sunucuya veya çereze veri yazılmaz. Gizli sekmede liste tutulmaz. Kartlar sade satır içi stille çizilir, temanızın ürün kartını kullanmaz.
+
+### Taksit bilgi tablosu
+
+`assets/taksit-tablosu.js` dosyasını da yükleyin. Tabloyu tüm ürünler için bir kez girmek üzere **Ayarlar > Meta alanlar ve meta nesneler** (Metafields and metaobjects) bölümünde **Mağaza** için `custom.taksit_tablosu` adlı **Çok satırlı metin** tanımı oluşturun; değerini **Ayarlar > Genel** sayfasının altındaki meta alanlar bölümünden her satıra bir program gelecek şekilde girin. Ürüne özel tablo için aynı adla bir ürün meta alanı tanımlayabilir ya da tabloyu doğrudan `tablo` parametresiyle verebilirsiniz (satırları `;` ile ayırarak):
+
+```text
+Program adı: 2=0 3=0 6=4,5 9=7,25
+Diğer program: 2=0 3=1,2
+```
+
+`6=4,5` "6 taksitte fiyata toplam %4,5 vade farkı eklenir" demektir; `0` peşin fiyatına anlamına gelir. Yukarıdaki adlar ve oranlar yalnızca biçim örneğidir: ödeme kuruluşunuzun panelinde müşteriye yansıttığınız güncel değerleri siz girin. Ardından ürün sayfasında fiyatın veya "Sepete ekle" butonunun altına:
+
+```liquid
+{% render 'taksit-tablosu', urun: product %}
+{% render 'taksit-tablosu', urun: product, acik: true, en_az_taksit: 10000, baslik: 'Kredi kartına taksit' %}
+{% render 'taksit-tablosu', urun: product, tablo: 'Program adı: 2=0 3=0 6=4,5; Diğer program: 2=0 3=1,2' %}
+```
+
+Taksit tutarı = fiyat × (100 + oran) / 100 / taksit sayısı olarak, seçili varyantın fiyatından hesaplanır ve kuruşa yuvarlanır. `en_az_taksit` (kuruş cinsinden) altındaki satırlar gizlenir; `taksit-yok` etiketli ürünlerde tablo çıkmaz. Varsayılan olarak yalnızca TRY ile gezen müşterilere gösterilir. Biçime uymayan girdiler atlanır ve tema düzenleyicide yalnızca size uyarı olarak listelenir. Tablo yalnızca bilgi verir: ödeme sayfasındaki taksitleri veya oranları değiştirmez; değerleri ödeme sayfanızla tutarlı tutmak ve oranlar değişince güncellemek size kalır. Snippet hiçbir banka, oran veya kampanya içermez.
 
 ## Türkiye için Shopify kontrol listesi
 
