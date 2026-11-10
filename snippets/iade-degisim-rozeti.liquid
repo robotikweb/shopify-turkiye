@@ -1,0 +1,135 @@
+{%- comment -%}
+  Ücretsiz iade ve değişim rozeti (ürün sayfası, ürün kartları, sepet, alt bilgi)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Kullanım:
+    Ürün sayfasında, "Sepete ekle" butonunun altına:
+      {% render 'iade-degisim-rozeti', urun: product, sure: 14 %}
+      {% render 'iade-degisim-rozeti', urun: product, sure: 30, degisim: false, ek_metin: 'İade kargo ücreti bizden.' %}
+    Ürün kartlarında (Dawn tabanlı temalarda snippets/card-product.liquid içinde fiyatın altına):
+      {% render 'iade-degisim-rozeti', urun: card_product, sure: 14, stil: 'rozet', baglanti: false %}
+    Sepette veya alt bilgide (ürüne bağlı olmadan):
+      {% render 'iade-degisim-rozeti', sure: 14 %}
+
+  sure           : (ZORUNLU) iade/değişim süresi, GÜN cinsinden tam sayı (ör. 14). Verilmezse veya 0 ise
+                   rozet gösterilmez; tema düzenleyicide yalnızca size bir uyarı çıkar. Varsayılan süre yoktur.
+  iade           : (isteğe bağlı) false verilirse metinden "iade" çıkarılır. Varsayılan true.
+  degisim        : (isteğe bağlı) false verilirse metinden "değişim" çıkarılır. Varsayılan true.
+  ucretsiz       : (isteğe bağlı) false verilirse metinden "ücretsiz" kelimesi çıkarılır. Varsayılan true.
+  metin          : (isteğe bağlı) rozet yazısının tamamını kendiniz yazın; [gun] yerine süre yazılır.
+                   Ör. 'Beğenmezseniz [gun] gün içinde ücretsiz iade'. Verilmezse yazı yukarıdaki
+                   parametrelerden kurulur (ör. "14 gün içinde ücretsiz iade ve değişim").
+  ek_metin       : (isteğe bağlı) alt satıra eklenecek kendi notunuz (ör. sürenin ne zaman başladığı,
+                   kargonun kimden olduğu). Varsayılan metin yoktur. 'rozet' stilinde gösterilmez.
+  urun           : (isteğe bağlı) ürün nesnesi. Verilmezse sayfanın product nesnesi kullanılır;
+                   o da yoksa (sepet, alt bilgi) rozet üründen bağımsız gösterilir.
+  haric_etiket   : (isteğe bağlı) bu etiketi taşıyan ürünlerde rozet gösterilmez.
+                   Varsayılan "iade-yok". Hediye kartlarında rozet hiç gösterilmez.
+  baglanti       : (isteğe bağlı) false verilirse koşullar bağlantısı gösterilmez. Varsayılan true.
+  kosul_url      : (isteğe bağlı) koşullar bağlantısının adresi (ör. '/pages/iade-ve-degisim').
+                   Verilmezse Ayarlar > Politikalar'daki iade politikanızın adresi kullanılır;
+                   o da boşsa bağlantı gösterilmez.
+  baglanti_metni : (isteğe bağlı) bağlantı yazısı. Varsayılan "Koşullar".
+  stil           : (isteğe bağlı) 'kutu' (varsayılan, simgeli çerçeveli kutu) veya 'rozet'
+                   (tek satırlık küçük etiket; ürün kartları için).
+
+  Notlar:
+  - Snippet hiçbir süre, koşul veya iade kuralı varsaymaz: süreyi ve notu siz verirsiniz. Rozette
+    yazan süre ve "ücretsiz" ifadesi, iade politikanızda ve mesafeli satış sözleşmenizde yazanla
+    birebir aynı olmalıdır; iade kargosunu müşteriden alıyorsanız ucretsiz: false kullanın.
+    Yasal cayma hakkı süresi ve koşulları için hukuk danışmanınıza danışın.
+  - Rozet yalnızca bilgi verir; iade sürecini veya Shopify'daki iade ayarlarını değiştirmez.
+  - Bazı ürünlerde iade/değişim yoksa (ör. kişiye özel üretim, hijyen ürünleri) bu ürünlere
+    "iade-yok" etiketini ekleyin; rozet o ürünlerde çıkmaz.
+  - Varsayılan bağlantı, Ayarlar > Politikalar bölümündeki "İade politikası" metninizden gelir
+    (shop.refund_policy). Ayrı bir sayfa kullanıyorsanız kosul_url verin.
+  - Uygulama, ek dosya veya JavaScript gerektirmez.
+{%- endcomment -%}
+{%- liquid
+  assign gun = sure | default: 0 | plus: 0 | floor
+  assign stil = stil | default: 'kutu'
+  assign haric_etiket = haric_etiket | default: 'iade-yok' | strip
+  assign ek_metin = ek_metin | default: '' | strip
+  assign baglanti_metni = baglanti_metni | default: 'Koşullar' | strip
+
+  assign iade_var = true
+  if iade == false
+    assign iade_var = false
+  endif
+  assign degisim_var = true
+  if degisim == false
+    assign degisim_var = false
+  endif
+  assign ucretsiz_mi = true
+  if ucretsiz == false
+    assign ucretsiz_mi = false
+  endif
+  assign baglanti_var = true
+  if baglanti == false
+    assign baglanti_var = false
+  endif
+
+  assign goster = true
+  if gun < 1
+    assign goster = false
+  endif
+  if iade_var == false and degisim_var == false
+    assign goster = false
+  endif
+
+  assign urun = urun | default: product
+  if urun != blank
+    if urun.gift_card?
+      assign goster = false
+    elsif haric_etiket != blank and urun.tags contains haric_etiket
+      assign goster = false
+    endif
+  endif
+
+  assign gun_yazisi = gun | append: ''
+  if metin != blank
+    assign rozet_yazisi = metin | strip | replace: '[gun]', gun_yazisi
+  else
+    if iade_var and degisim_var
+      assign islem = 'iade ve değişim'
+    elsif iade_var
+      assign islem = 'iade'
+    else
+      assign islem = 'değişim'
+    endif
+    if ucretsiz_mi
+      assign islem = 'ücretsiz ' | append: islem
+    endif
+    assign rozet_yazisi = gun_yazisi | append: ' gün içinde ' | append: islem
+  endif
+
+  assign kosul_adresi = ''
+  if baglanti_var
+    assign kosul_adresi = kosul_url | default: shop.refund_policy.url | default: '' | strip
+  endif
+-%}
+{%- if goster -%}
+  {%- if stil == 'rozet' -%}
+<p class="iade-rozeti" style="margin: .35rem 0 0; font-size: .75em; line-height: 1.4;">
+  <span style="display: inline-flex; align-items: center; gap: .35em; padding: .15em .6em; border: 1px solid currentColor; border-radius: 999px; opacity: .85;">
+    <svg aria-hidden="true" focusable="false" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex: none;"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+    {%- if kosul_adresi != blank -%}
+      <a href="{{ kosul_adresi }}" style="color: inherit; text-decoration: none;">{{ rozet_yazisi | escape }}</a>
+    {%- else -%}
+      <span>{{ rozet_yazisi | escape }}</span>
+    {%- endif -%}
+  </span>
+</p>
+  {%- else -%}
+<div class="iade-rozeti" style="display: flex; gap: .75rem; align-items: flex-start; margin: 1rem 0; padding: .85rem 1rem; border: 1px solid rgba(0,0,0,.12); border-radius: 8px; font-size: .9em; line-height: 1.45;">
+  <svg aria-hidden="true" focusable="false" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: .1em;"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+  <div>
+    <p style="margin: 0; font-weight: 600;">{{ rozet_yazisi | escape }}</p>
+    {%- if ek_metin != blank -%}<p style="margin: .2rem 0 0;">{{ ek_metin | escape }}</p>{%- endif -%}
+    {%- if kosul_adresi != blank -%}<p style="margin: .2rem 0 0;"><a href="{{ kosul_adresi }}" style="color: inherit;">{{ baglanti_metni | escape }}</a></p>{%- endif -%}
+  </div>
+</div>
+  {%- endif -%}
+{%- elsif request.design_mode and gun < 1 -%}
+<p style="margin: .5rem 0; padding: .5rem .75rem; border: 1px dashed #c00; color: #c00; font-size: .85em;">iade-degisim-rozeti: "sure" parametresini gün olarak verin (ör. sure: 14). Bu uyarı yalnızca tema düzenleyicide görünür.</p>
+{%- endif -%}

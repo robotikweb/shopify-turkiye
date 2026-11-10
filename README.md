@@ -22,6 +22,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/organizasyon-yapisal-veri.liquid` | Ana sayfaya mağazanın unvanını, logosunu, iletişim bilgilerini, adresini ve vergi numarasını Google'a bildiren Organization/OnlineStore JSON-LD verisi ekler |
 | `snippets/son-goruntulenen-urunler.liquid` + `assets/son-goruntulenen.js` | Ziyaretçinin baktığı ürünleri tarayıcısında hatırlayıp "Son görüntülediğiniz ürünler" listesi olarak gösterir; ad, görsel, fiyat ve stok durumu her seferinde güncel alınır |
 | `snippets/taksit-tablosu.liquid` + `assets/taksit-tablosu.js` | Ürün sayfasında, sizin girdiğiniz banka/kart programları ve vade farkı oranlarıyla taksit tutarı ve toplamı gösteren açılır tablo; varyant değişince yeniden hesaplanır |
+| `snippets/iade-degisim-rozeti.liquid` | Ürün sayfasında, ürün kartlarında veya sepette "14 gün içinde ücretsiz iade ve değişim" rozeti; süreyi siz verirsiniz, iade politikanıza bağlantı verir, iadesiz ürünlerde gizlenir |
 
 ## Kurulum
 
@@ -185,6 +186,18 @@ Diğer program: 2=0 3=1,2
 ```
 
 Taksit tutarı = fiyat × (100 + oran) / 100 / taksit sayısı olarak, seçili varyantın fiyatından hesaplanır ve kuruşa yuvarlanır. `en_az_taksit` (kuruş cinsinden) altındaki satırlar gizlenir; `taksit-yok` etiketli ürünlerde tablo çıkmaz. Varsayılan olarak yalnızca TRY ile gezen müşterilere gösterilir. Biçime uymayan girdiler atlanır ve tema düzenleyicide yalnızca size uyarı olarak listelenir. Tablo yalnızca bilgi verir: ödeme sayfasındaki taksitleri veya oranları değiştirmez; değerleri ödeme sayfanızla tutarlı tutmak ve oranlar değişince güncellemek size kalır. Snippet hiçbir banka, oran veya kampanya içermez.
+
+### Ücretsiz iade ve değişim rozeti
+
+Ürün sayfasında "Sepete ekle" butonunun altına; ürün kartlarında (Dawn tabanlı temalarda `snippets/card-product.liquid` içinde fiyatın altına) küçük rozet olarak; sepette veya alt bilgide üründen bağımsız olarak:
+
+```liquid
+{% render 'iade-degisim-rozeti', urun: product, sure: 14 %}
+{% render 'iade-degisim-rozeti', urun: product, sure: 30, degisim: false, ek_metin: 'İade kargo ücreti bizden.' %}
+{% render 'iade-degisim-rozeti', urun: card_product, sure: 14, stil: 'rozet', baglanti: false %}
+```
+
+`sure` gün cinsindendir ve zorunludur; verilmezse rozet görünmez, yalnızca tema düzenleyicide size uyarı çıkar. Yazı parametrelerden kurulur ("14 gün içinde ücretsiz iade ve değişim"); `iade: false`, `degisim: false` veya `ucretsiz: false` ile ilgili kelime çıkarılır, `metin` ile tamamını kendiniz yazabilirsiniz (`[gun]` yerine süre gelir). Koşullar bağlantısı varsayılan olarak **Ayarlar > Politikalar**'daki iade politikanıza gider; ayrı bir sayfanız varsa `kosul_url` verin. `iade-yok` etiketli ürünlerde ve hediye kartlarında rozet çıkmaz. Snippet hiçbir süre veya koşul varsaymaz: rozetteki süre ve "ücretsiz" ifadesi iade politikanız ve mesafeli satış sözleşmenizle birebir aynı olmalıdır; iade kargosunu müşteriden alıyorsanız `ucretsiz: false` kullanın. JavaScript kullanmaz.
 
 ## Türkiye için Shopify kontrol listesi
 
