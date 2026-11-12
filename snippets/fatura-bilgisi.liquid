@@ -1,0 +1,142 @@
+{%- comment -%}
+  Bireysel / kurumsal fatura bilgisi alanı (sepet sayfası ve sepet çekmecesi)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Amaç: Müşteri sepette "Bireysel" veya "Kurumsal" fatura seçer. "Kurumsal" seçilince firma unvanı,
+  vergi dairesi ve vergi numarası alanları açılır ve doldurulmadan ödemeye geçilemez. Bilgiler siparişe
+  sepet özelliği (cart attribute) olarak kaydedilir ve sipariş detayında "Ek ayrıntılar" altında görünür;
+  faturayı keserken buradan alırsınız.
+
+  Kullanım: assets/fatura-bilgisi.js dosyasını da yükleyin. Dawn tabanlı temalarda
+  sections/main-cart-footer.liquid içinde <div class="cart__ctas" satırının hemen üstüne:
+    {% render 'fatura-bilgisi', form_kimligi: 'cart' %}
+
+  Sepet çekmecesinde (snippets/cart-drawer.liquid içinde <div class="cart__ctas" satırının üstüne):
+    {% render 'fatura-bilgisi', form_kimligi: 'CartDrawer-Form' %}
+
+  Diğer örnekler:
+    {% render 'fatura-bilgisi', form_kimligi: 'cart', adres: true, aciklama: 'Faturanız e-posta adresinize gönderilir.' %}
+    {% render 'fatura-bilgisi', form_kimligi: 'cart', varsayilan: 'kurumsal', vergi_dairesi_zorunlu: false %}
+
+  Parametreler:
+  form_kimligi          : (isteğe bağlı) Alan sepet formunun DIŞINDAYSA, formun id değeri. Bilgilerin
+                          siparişe kaydedilmesi için gerekir. Dawn'da sepet sayfası 'cart', sepet çekmecesi
+                          'CartDrawer-Form'. Alan formun içindeyse vermeyin.
+  varsayilan            : (isteğe bağlı) 'bireysel' (varsayılan) veya 'kurumsal'. Müşteri daha önce seçim
+                          yaptıysa onun seçimi kullanılır.
+  baslik                : (isteğe bağlı) Başlık. Varsayılan "Fatura bilgileri".
+  adres                 : (isteğe bağlı) true verilirse kurumsal seçimde isteğe bağlı bir "Fatura adresi"
+                          kutusu da çıkar (teslimat adresinden farklıysa). Varsayılan false.
+  vergi_dairesi_zorunlu : (isteğe bağlı) false verilirse vergi dairesi boş bırakılabilir. Varsayılan true.
+  aciklama              : (isteğe bağlı) Alanların altında gösterilecek kendi notunuz. Varsayılan metin yoktur.
+
+  Siparişe kaydedilen sepet özellikleri:
+    "Fatura türü" (Bireysel / Kurumsal), "Firma unvanı", "Vergi dairesi", "Vergi no", "Fatura adresi"
+
+  Notlar:
+  - Vergi no alanı yalnızca biçimi kontrol eder: 10 haneli vergi kimlik numarası veya 11 haneli
+    (0 ile başlamayan) numara kabul edilir. Numaranın gerçekten kayıtlı olduğunu veya firma unvanıyla
+    eşleştiğini doğrulamaz; faturayı kesmeden önce bilgileri kendiniz kontrol edin.
+  - "Bireysel"e dönülürse kurumsal alanlar gizlenir ve ödemeye geçerken sepetteki eski kurumsal
+    bilgiler boş gönderilerek silinir; böylece siparişte yanlışlıkla eski firma bilgisi kalmaz.
+  - Zorunluluk ve biçim kontrolü JavaScript ile yapılır (alanlar ancak "Kurumsal" seçiliyken zorunlu olur). JavaScript çalışmazsa alanlar yine görünür
+    ve kaydedilir, ancak boş bırakılabilir.
+  - Kontrol yalnızca sepet sayfasında ve sepet çekmecesindedir; Shopify'ın ödeme sayfası (checkout)
+    değiştirilmez. Ürün sayfasındaki "Hemen al" ve sepetteki hızlı ödeme butonları (Shop Pay, PayPal vb.)
+    sepeti atladığı için bu bilgiler o yoldan gelen siparişlerde boş kalır; kurumsal fatura sizin için
+    önemliyse o butonları tema düzenleyiciden kapatın.
+  - Firma unvanı ve vergi bilgileri kişisel veri içerebilir (şahıs şirketlerinde vergi no TC Kimlik No
+    olabilir). Aydınlatma metninizde amacını belirtin. Fatura düzenleme kuralları ve e-fatura /
+    e-arşiv yükümlülükleri için mali müşavirinize danışın; bu snippet hiçbir kural varsaymaz.
+  - Uygulama gerektirmez.
+{%- endcomment -%}
+{%- liquid
+  assign baslik = baslik | default: 'Fatura bilgileri'
+  assign ek = form_kimligi | default: 'sepet' | handleize
+  assign vd_zorunlu = true
+  if vergi_dairesi_zorunlu == false
+    assign vd_zorunlu = false
+  endif
+
+  assign tur = cart.attributes['Fatura türü']
+  if tur != 'Bireysel' and tur != 'Kurumsal'
+    if varsayilan == 'kurumsal'
+      assign tur = 'Kurumsal'
+    else
+      assign tur = 'Bireysel'
+    endif
+  endif
+  assign kurumsal = false
+  if tur == 'Kurumsal'
+    assign kurumsal = true
+  endif
+
+  assign form_attr = ''
+  if form_kimligi != blank
+    assign fk = form_kimligi | escape
+    assign form_attr = ' form="' | append: fk | append: '"'
+  endif
+-%}
+<style>
+  .fatura-bilgisi__kurumsal { display: none; }
+  .fatura-bilgisi:has(input[value="Kurumsal"]:checked) .fatura-bilgisi__kurumsal,
+  .fatura-bilgisi.fatura-bilgisi--kurumsal .fatura-bilgisi__kurumsal { display: block; }
+  .fatura-bilgisi.fatura-bilgisi--bireysel .fatura-bilgisi__kurumsal { display: none; }
+</style>
+<fieldset class="fatura-bilgisi{% if kurumsal %} fatura-bilgisi--kurumsal{% endif %}" data-fatura-bilgisi style="margin: 0 0 1rem; padding: 0; border: 0; text-align: left; font-size: .95em;">
+  <legend style="padding: 0; margin: 0 0 .5rem; font-weight: 600;">{{ baslik | escape }}</legend>
+  <div style="display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-bottom: .5rem;">
+    <label style="display: inline-flex; gap: .45em; align-items: center; cursor: pointer;">
+      <input type="radio" name="attributes[Fatura türü]" value="Bireysel"{{ form_attr }}{% unless kurumsal %} checked{% endunless %} data-fatura-tur style="margin: 0; accent-color: currentColor;">
+      Bireysel
+    </label>
+    <label style="display: inline-flex; gap: .45em; align-items: center; cursor: pointer;">
+      <input type="radio" name="attributes[Fatura türü]" value="Kurumsal"{{ form_attr }}{% if kurumsal %} checked{% endif %} data-fatura-tur style="margin: 0; accent-color: currentColor;">
+      Kurumsal
+    </label>
+  </div>
+
+  <div class="fatura-bilgisi__kurumsal" data-fatura-kurumsal>
+    <div style="margin-bottom: .6rem;">
+      <label for="FaturaUnvan-{{ ek }}" style="display: block; margin-bottom: .25rem;">Firma unvanı</label>
+      <input type="text" id="FaturaUnvan-{{ ek }}" name="attributes[Firma unvanı]" value="{{ cart.attributes['Firma unvanı'] | escape }}"{{ form_attr }}
+        autocomplete="organization" maxlength="200" data-fatura-alan data-fatura-zorunlu
+        style="width: 100%; max-width: 420px; padding: .55rem .7rem;">
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: .6rem 1rem; margin-bottom: .6rem;">
+      <div style="flex: 1 1 180px; max-width: 260px;">
+        <label for="FaturaVd-{{ ek }}" style="display: block; margin-bottom: .25rem;">Vergi dairesi{% unless vd_zorunlu %} (isteğe bağlı){% endunless %}</label>
+        <input type="text" id="FaturaVd-{{ ek }}" name="attributes[Vergi dairesi]" value="{{ cart.attributes['Vergi dairesi'] | escape }}"{{ form_attr }}
+          autocomplete="off" maxlength="100" data-fatura-alan{% if vd_zorunlu %} data-fatura-zorunlu{% endif %}
+          style="width: 100%; padding: .55rem .7rem;">
+      </div>
+      <div style="flex: 1 1 160px; max-width: 220px;">
+        <label for="FaturaVkn-{{ ek }}" style="display: block; margin-bottom: .25rem;">Vergi no</label>
+        <input type="text" id="FaturaVkn-{{ ek }}" name="attributes[Vergi no]" value="{{ cart.attributes['Vergi no'] | escape }}"{{ form_attr }}
+          inputmode="numeric" autocomplete="off" maxlength="11" data-fatura-alan data-fatura-zorunlu data-fatura-vkn
+          style="width: 100%; padding: .55rem .7rem;">
+      </div>
+    </div>
+    {%- if adres -%}
+      <div style="margin-bottom: .6rem;">
+        <label for="FaturaAdres-{{ ek }}" style="display: block; margin-bottom: .25rem;">Fatura adresi (teslimat adresinden farklıysa)</label>
+        <textarea id="FaturaAdres-{{ ek }}" name="attributes[Fatura adresi]"{{ form_attr }} rows="2" maxlength="500" data-fatura-alan
+          style="width: 100%; max-width: 420px; padding: .55rem .7rem;">{{ cart.attributes['Fatura adresi'] | escape }}</textarea>
+      </div>
+    {%- endif -%}
+    <p data-fatura-hata role="alert" hidden style="margin: 0 0 .4rem; color: #b42318; font-weight: 600;"></p>
+  </div>
+
+  {%- comment -%} "Bireysel" seçiliyken eski kurumsal bilgileri sepetten silmek için (JavaScript yönetir) {%- endcomment -%}
+  <input type="hidden" name="attributes[Firma unvanı]" value=""{{ form_attr }} disabled data-fatura-temizle>
+  <input type="hidden" name="attributes[Vergi dairesi]" value=""{{ form_attr }} disabled data-fatura-temizle>
+  <input type="hidden" name="attributes[Vergi no]" value=""{{ form_attr }} disabled data-fatura-temizle>
+  {%- if adres -%}
+    <input type="hidden" name="attributes[Fatura adresi]" value=""{{ form_attr }} disabled data-fatura-temizle>
+  {%- endif -%}
+
+  {%- if aciklama != blank -%}
+    <p style="margin: .25rem 0 0; font-size: .9em; opacity: .75;">{{ aciklama | escape }}</p>
+  {%- endif -%}
+</fieldset>
+<script src="{{ 'fatura-bilgisi.js' | asset_url }}" defer></script>

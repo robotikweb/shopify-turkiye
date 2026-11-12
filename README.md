@@ -23,6 +23,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/son-goruntulenen-urunler.liquid` + `assets/son-goruntulenen.js` | Ziyaretçinin baktığı ürünleri tarayıcısında hatırlayıp "Son görüntülediğiniz ürünler" listesi olarak gösterir; ad, görsel, fiyat ve stok durumu her seferinde güncel alınır |
 | `snippets/taksit-tablosu.liquid` + `assets/taksit-tablosu.js` | Ürün sayfasında, sizin girdiğiniz banka/kart programları ve vade farkı oranlarıyla taksit tutarı ve toplamı gösteren açılır tablo; varyant değişince yeniden hesaplanır |
 | `snippets/iade-degisim-rozeti.liquid` | Ürün sayfasında, ürün kartlarında veya sepette "14 gün içinde ücretsiz iade ve değişim" rozeti; süreyi siz verirsiniz, iade politikanıza bağlantı verir, iadesiz ürünlerde gizlenir |
+| `snippets/fatura-bilgisi.liquid` + `assets/fatura-bilgisi.js` | Sepette "Bireysel / Kurumsal" fatura seçimi; kurumsalda firma unvanı, vergi dairesi ve vergi no zorunlu olur ve siparişe kaydedilir |
 
 ## Kurulum
 
@@ -198,6 +199,18 @@ Taksit tutarı = fiyat × (100 + oran) / 100 / taksit sayısı olarak, seçili v
 ```
 
 `sure` gün cinsindendir ve zorunludur; verilmezse rozet görünmez, yalnızca tema düzenleyicide size uyarı çıkar. Yazı parametrelerden kurulur ("14 gün içinde ücretsiz iade ve değişim"); `iade: false`, `degisim: false` veya `ucretsiz: false` ile ilgili kelime çıkarılır, `metin` ile tamamını kendiniz yazabilirsiniz (`[gun]` yerine süre gelir). Koşullar bağlantısı varsayılan olarak **Ayarlar > Politikalar**'daki iade politikanıza gider; ayrı bir sayfanız varsa `kosul_url` verin. `iade-yok` etiketli ürünlerde ve hediye kartlarında rozet çıkmaz. Snippet hiçbir süre veya koşul varsaymaz: rozetteki süre ve "ücretsiz" ifadesi iade politikanız ve mesafeli satış sözleşmenizle birebir aynı olmalıdır; iade kargosunu müşteriden alıyorsanız `ucretsiz: false` kullanın. JavaScript kullanmaz.
+
+### Bireysel / kurumsal fatura bilgisi
+
+`assets/fatura-bilgisi.js` dosyasını da yükleyin. Dawn tabanlı temalarda `sections/main-cart-footer.liquid` (sepet sayfası) ve `snippets/cart-drawer.liquid` (sepet çekmecesi) içinde `<div class="cart__ctas"` satırının hemen üstüne:
+
+```liquid
+{% render 'fatura-bilgisi', form_kimligi: 'cart' %}
+{% render 'fatura-bilgisi', form_kimligi: 'CartDrawer-Form' %}
+{% render 'fatura-bilgisi', form_kimligi: 'cart', adres: true, aciklama: 'Kendi notunuz.' %}
+```
+
+Müşteri "Bireysel" veya "Kurumsal" seçer; "Kurumsal"da firma unvanı, vergi dairesi (`vergi_dairesi_zorunlu: false` ile isteğe bağlı) ve vergi no doldurulmadan ödemeye geçilemez. Bilgiler siparişe "Fatura türü", "Firma unvanı", "Vergi dairesi", "Vergi no" (ve `adres: true` ile "Fatura adresi") sepet özellikleri olarak kaydedilir ve sipariş detayında "Ek ayrıntılar" altında görünür. "Bireysel"e dönülürse eski kurumsal bilgiler sepetten silinir. Vergi no yalnızca biçim olarak kontrol edilir (10 hane, şahıs şirketleri için 11 hane); numaranın kayıtlı olduğu veya unvanla eşleştiği doğrulanmaz. Kontrol yalnızca sepette çalışır: ürün sayfasındaki "Hemen al" ve hızlı ödeme butonları sepeti atladığı için o siparişlerde bilgiler boş kalır. TC Kimlik No alanıyla birlikte kullanılabilir. Fatura ve e-fatura/e-arşiv yükümlülükleriniz için mali müşavirinize danışın.
 
 ## Türkiye için Shopify kontrol listesi
 
