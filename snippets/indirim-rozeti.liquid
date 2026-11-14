@@ -1,0 +1,205 @@
+{%- comment -%}
+  İndirim oranı rozeti: "%25 indirim" / "150,00 TL indirim" (ürün sayfası ve ürün kartları)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Kullanım:
+    Ürün sayfasında, fiyatın hemen altına (seçili varyanta göre güncellenir):
+      {% render 'indirim-rozeti', urun: product %}
+      {% render 'indirim-rozeti', urun: product, bicim: 'ikisi' %}
+      {% render 'indirim-rozeti', urun: product, bicim: 'tutar', metin: '[tutar] daha ucuz' %}
+    Ürün kartlarında (Dawn tabanlı temalarda snippets/card-product.liquid içinde fiyatın altına):
+      {% render 'indirim-rozeti', urun: card_product, kart: true %}
+
+  urun        : (isteğe bağlı) ürün nesnesi. Verilmezse sayfanın product nesnesi kullanılır.
+  bicim       : (isteğe bağlı) 'yuzde' (varsayılan, "%25 indirim"), 'tutar' ("150,00 TL indirim")
+                veya 'ikisi' ("%25 indirim · 150,00 TL").
+  metin       : (isteğe bağlı) rozet yazısını kendiniz yazın. [oran] yerine yüzde (yalnızca sayı),
+                [tutar] yerine mağazanızın para biçimindeki indirim tutarı yazılır.
+                Ör. '%[oran] indirim', 'Sepette [tutar] kazancınız'.
+  kart        : (isteğe bağlı) true verilirse ürün düzeyinde, JavaScript'siz hesaplanır (ürün kartları,
+                koleksiyon sayfaları, arama sonuçları için). Stokta olan varyantlar arasında indirim
+                oranı farklıysa veya indirimsiz varyant varsa yazının başına varan_metin eklenir.
+  varan_metin : (isteğe bağlı) kart modunda, indirim her varyantta aynı değilse başa eklenen ifade.
+                Varsayılan "En fazla".
+  en_az_oran  : (isteğe bağlı) bu yüzdenin altındaki indirimlerde rozet gösterilmez. Varsayılan 1.
+  haric_etiket: (isteğe bağlı) bu etiketi taşıyan ürünlerde rozet gösterilmez. Varsayılan "indirim-rozeti-yok".
+  renk        : (isteğe bağlı) rozet arka plan rengi. Varsayılan #b42318 (koyu kırmızı); yazı beyazdır.
+  boyut       : (isteğe bağlı) 'kucuk' (kartlar için) veya 'normal' (varsayılan).
+
+  Notlar:
+  - İndirim, varyantın "Karşılaştırma fiyatı" (compare_at_price) ile satış fiyatı arasındaki farktır.
+    Karşılaştırma fiyatı boşsa veya satış fiyatından büyük değilse rozet çıkmaz. Snippet hiçbir
+    fiyat, oran veya kampanya uydurmaz; gösterdiği her şey ürününüzdeki fiyatlardan hesaplanır.
+  - Yüzde aşağı yuvarlanır (ör. %24,8 → %24), böylece rozet indirimi hiçbir zaman olduğundan büyük
+    göstermez. Tutar, mağazanızın para biçimiyle (money filtresi) yazılır.
+  - Karşılaştırma fiyatı, ürünü gerçekten sattığınız önceki fiyat olmalıdır. İndirim duyurularına
+    ilişkin mevzuata (önceki fiyatın nasıl belirleneceği dahil) uyum sizin sorumluluğunuzdadır;
+    emin değilseniz hukuk danışmanınıza danışın.
+  - Ürün sayfasında müşteri varyant değiştirdikçe rozet güncellenir. Snippet, sepete ekleme formundaki
+    name="id" alanını izler (Dawn ve türevlerinde bu alan varyant değişince güncellenir). Tükenmiş
+    varyantlarda da fiyat farkı varsa rozet görünür; temanız onları ayrıca "Tükendi" diye gösterir.
+  - Dawn kendi "İndirim" rozetini de gösterir. İkisinin birlikte görünmesini istemiyorsanız temanın
+    rozetini tema düzenleyiciden veya price.liquid içinden kaldırın.
+  - Uygulama veya ek dosya gerektirmez. kart: true modunda JavaScript kullanmaz.
+{%- endcomment -%}
+{%- liquid
+  assign urun = urun | default: product
+  assign bicim = bicim | default: 'yuzde'
+  assign varan_metin = varan_metin | default: 'En fazla' | strip
+  assign en_az_oran = en_az_oran | default: 1 | plus: 0
+  assign haric_etiket = haric_etiket | default: 'indirim-rozeti-yok' | strip
+  assign renk = renk | default: '#b42318'
+
+  if metin != blank
+    assign sablon = metin | strip
+  elsif bicim == 'tutar'
+    assign sablon = '[tutar] indirim'
+  elsif bicim == 'ikisi'
+    assign sablon = '%[oran] indirim · [tutar]'
+  else
+    assign sablon = '%[oran] indirim'
+  endif
+
+  assign kart_modu = false
+  if kart == true
+    assign kart_modu = true
+  endif
+
+  assign goster = true
+  if urun == blank or urun.gift_card?
+    assign goster = false
+  elsif haric_etiket != blank and urun.tags contains haric_etiket
+    assign goster = false
+  endif
+
+  if boyut == 'kucuk'
+    assign yazi_boyu = '.75em'
+  else
+    assign yazi_boyu = '.85em'
+  endif
+-%}
+{%- if goster -%}
+  {%- if kart_modu -%}
+    {%- liquid
+      assign en_yuksek_oran = 0
+      assign en_yuksek_tutar = 0
+      assign en_dusuk_oran = 101
+      assign sayilan = 0
+      for v in urun.variants
+        unless v.available
+          continue
+        endunless
+        assign sayilan = sayilan | plus: 1
+        assign v_oran = 0
+        assign v_tutar = 0
+        if v.compare_at_price > v.price
+          assign v_tutar = v.compare_at_price | minus: v.price
+          assign v_oran = v_tutar | times: 100 | divided_by: v.compare_at_price | floor
+        endif
+        if v_oran < en_az_oran
+          assign v_oran = 0
+          assign v_tutar = 0
+        endif
+        if v_oran > en_yuksek_oran
+          assign en_yuksek_oran = v_oran
+        endif
+        if v_tutar > en_yuksek_tutar
+          assign en_yuksek_tutar = v_tutar
+        endif
+        if v_oran < en_dusuk_oran
+          assign en_dusuk_oran = v_oran
+        endif
+      endfor
+
+      if sayilan > 0 and en_yuksek_oran > 0
+        assign tutar_yazisi = en_yuksek_tutar | money | strip_html
+        assign rozet_yazisi = sablon | replace: '[oran]', en_yuksek_oran | replace: '[tutar]', tutar_yazisi
+        if en_dusuk_oran != en_yuksek_oran and varan_metin != blank
+          assign rozet_yazisi = varan_metin | append: ' ' | append: rozet_yazisi
+        endif
+      else
+        assign rozet_yazisi = ''
+      endif
+    -%}
+    {%- if rozet_yazisi != blank -%}
+<p class="indirim-rozeti" style="margin: .35rem 0 0; line-height: 1.3;"><span style="display: inline-block; padding: .2em .6em; border-radius: 4px; background: {{ renk }}; color: #fff; font-size: {{ yazi_boyu }}; font-weight: 700;">{{ rozet_yazisi | escape }}</span></p>
+    {%- endif -%}
+  {%- else -%}
+    {%- liquid
+      assign secili = urun.selected_or_first_available_variant
+      assign ilk_yazi = ''
+      if secili.compare_at_price > secili.price
+        assign s_tutar = secili.compare_at_price | minus: secili.price
+        assign s_oran = s_tutar | times: 100 | divided_by: secili.compare_at_price | floor
+        if s_oran >= en_az_oran and s_oran > 0
+          assign s_tutar_yazisi = s_tutar | money | strip_html
+          assign ilk_yazi = sablon | replace: '[oran]', s_oran | replace: '[tutar]', s_tutar_yazisi
+        endif
+      endif
+    -%}
+<p class="indirim-rozeti" style="margin: .5rem 0; line-height: 1.3;" {% if ilk_yazi == blank %}hidden{% endif %}><span data-indirim-yazi style="display: inline-block; padding: .2em .6em; border-radius: 4px; background: {{ renk }}; color: #fff; font-size: {{ yazi_boyu }}; font-weight: 700;">{{ ilk_yazi | escape }}</span></p>
+<script type="application/json" data-indirim-varyantlar>
+  {
+    {%- for v in urun.variants -%}
+      {%- liquid
+        assign v_yazi = ''
+        if v.compare_at_price > v.price
+          assign v_tutar = v.compare_at_price | minus: v.price
+          assign v_oran = v_tutar | times: 100 | divided_by: v.compare_at_price | floor
+          if v_oran >= en_az_oran and v_oran > 0
+            assign v_tutar_yazisi = v_tutar | money | strip_html
+            assign v_yazi = sablon | replace: '[oran]', v_oran | replace: '[tutar]', v_tutar_yazisi
+          endif
+        endif
+      -%}
+      "{{ v.id }}": {{ v_yazi | json }}{% unless forloop.last %},{% endunless %}
+    {%- endfor -%}
+  }
+</script>
+<script>
+(function () {
+  var veri = document.currentScript.previousElementSibling;
+  var kutu = veri && veri.previousElementSibling;
+  if (!kutu || !kutu.classList.contains('indirim-rozeti')) return;
+  var varyantlar;
+  try { varyantlar = JSON.parse(veri.textContent); } catch (e) { return; }
+  var yazi = kutu.querySelector('[data-indirim-yazi]');
+  var sonId = null;
+
+  function guncelle(id) {
+    id = String(id || '');
+    if (!Object.prototype.hasOwnProperty.call(varyantlar, id) || id === sonId) return;
+    sonId = id;
+    var metin = varyantlar[id];
+    if (metin) {
+      yazi.textContent = metin;
+      kutu.hidden = false;
+    } else {
+      kutu.hidden = true;
+    }
+  }
+
+  // Sayfadaki sepete ekleme formlarından bu ürüne ait varyant kimliğini bul
+  function seciliId() {
+    var alanlar = document.querySelectorAll('form[action*="/cart/add"] [name="id"]');
+    for (var i = 0; i < alanlar.length; i++) {
+      if (Object.prototype.hasOwnProperty.call(varyantlar, String(alanlar[i].value))) return alanlar[i].value;
+    }
+    return null;
+  }
+
+  sonId = seciliId();
+  document.addEventListener('change', function (e) {
+    var h = e.target;
+    if (h && h.name === 'id' && h.closest && h.closest('form[action*="/cart/add"]')) guncelle(h.value);
+  }, true);
+  // Değişiklik olayı yaymayan temalar için hafif yedek kontrol
+  setInterval(function () {
+    if (document.hidden) return;
+    var id = seciliId();
+    if (id) guncelle(id);
+  }, 800);
+})();
+</script>
+  {%- endif -%}
+{%- endif -%}

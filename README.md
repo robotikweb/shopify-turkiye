@@ -24,6 +24,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/taksit-tablosu.liquid` + `assets/taksit-tablosu.js` | Ürün sayfasında, sizin girdiğiniz banka/kart programları ve vade farkı oranlarıyla taksit tutarı ve toplamı gösteren açılır tablo; varyant değişince yeniden hesaplanır |
 | `snippets/iade-degisim-rozeti.liquid` | Ürün sayfasında, ürün kartlarında veya sepette "14 gün içinde ücretsiz iade ve değişim" rozeti; süreyi siz verirsiniz, iade politikanıza bağlantı verir, iadesiz ürünlerde gizlenir |
 | `snippets/fatura-bilgisi.liquid` + `assets/fatura-bilgisi.js` | Sepette "Bireysel / Kurumsal" fatura seçimi; kurumsalda firma unvanı, vergi dairesi ve vergi no zorunlu olur ve siparişe kaydedilir |
+| `snippets/indirim-rozeti.liquid` | Karşılaştırma fiyatı olan ürünlerde "%25 indirim" veya "150,00 TL indirim" rozeti; ürün sayfasında varyant değişince güncellenir, ürün kartlarında "En fazla %30 indirim" gösterir |
 
 ## Kurulum
 
@@ -211,6 +212,18 @@ Taksit tutarı = fiyat × (100 + oran) / 100 / taksit sayısı olarak, seçili v
 ```
 
 Müşteri "Bireysel" veya "Kurumsal" seçer; "Kurumsal"da firma unvanı, vergi dairesi (`vergi_dairesi_zorunlu: false` ile isteğe bağlı) ve vergi no doldurulmadan ödemeye geçilemez. Bilgiler siparişe "Fatura türü", "Firma unvanı", "Vergi dairesi", "Vergi no" (ve `adres: true` ile "Fatura adresi") sepet özellikleri olarak kaydedilir ve sipariş detayında "Ek ayrıntılar" altında görünür. "Bireysel"e dönülürse eski kurumsal bilgiler sepetten silinir. Vergi no yalnızca biçim olarak kontrol edilir (10 hane, şahıs şirketleri için 11 hane); numaranın kayıtlı olduğu veya unvanla eşleştiği doğrulanmaz. Kontrol yalnızca sepette çalışır: ürün sayfasındaki "Hemen al" ve hızlı ödeme butonları sepeti atladığı için o siparişlerde bilgiler boş kalır. TC Kimlik No alanıyla birlikte kullanılabilir. Fatura ve e-fatura/e-arşiv yükümlülükleriniz için mali müşavirinize danışın.
+
+### İndirim oranı rozeti
+
+Ürün sayfasında fiyatın hemen altına; ürün kartlarında (Dawn tabanlı temalarda `snippets/card-product.liquid` içinde fiyatın altına) `kart: true` ile:
+
+```liquid
+{% render 'indirim-rozeti', urun: product %}
+{% render 'indirim-rozeti', urun: product, bicim: 'ikisi' %}
+{% render 'indirim-rozeti', urun: card_product, kart: true, boyut: 'kucuk' %}
+```
+
+Rozet, varyantın **Karşılaştırma fiyatı** satış fiyatından yüksekse görünür ve aradaki farkı `bicim` ile yüzde (`yuzde`, varsayılan), tutar (`tutar`) veya ikisi birden (`ikisi`) olarak yazar; `metin` ile kendi cümlenizi kurabilirsiniz (`[oran]` ve `[tutar]` yer tutucularıyla). Yüzde aşağı yuvarlanır, böylece indirim hiçbir zaman olduğundan büyük görünmez. Ürün sayfasında müşteri varyant değiştirdikçe güncellenir; kart modunda stokta olan varyantlar arasında indirim farklıysa "En fazla" ile başlar ve JavaScript kullanmaz. `en_az_oran` altındaki indirimlerde ve `indirim-rozeti-yok` etiketli ürünlerde rozet çıkmaz. Snippet fiyat veya oran uydurmaz, her şeyi ürününüzdeki fiyatlardan hesaplar; karşılaştırma fiyatının gerçekten uyguladığınız önceki fiyat olması ve indirim duyurularına ilişkin mevzuata uyum sizin sorumluluğunuzdadır. Dawn'ın kendi "İndirim" rozetiyle birlikte görünmesini istemiyorsanız temanın rozetini kaldırın.
 
 ## Türkiye için Shopify kontrol listesi
 
