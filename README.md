@@ -25,6 +25,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/iade-degisim-rozeti.liquid` | Ürün sayfasında, ürün kartlarında veya sepette "14 gün içinde ücretsiz iade ve değişim" rozeti; süreyi siz verirsiniz, iade politikanıza bağlantı verir, iadesiz ürünlerde gizlenir |
 | `snippets/fatura-bilgisi.liquid` + `assets/fatura-bilgisi.js` | Sepette "Bireysel / Kurumsal" fatura seçimi; kurumsalda firma unvanı, vergi dairesi ve vergi no zorunlu olur ve siparişe kaydedilir |
 | `snippets/indirim-rozeti.liquid` | Karşılaştırma fiyatı olan ürünlerde "%25 indirim" veya "150,00 TL indirim" rozeti; ürün sayfasında varyant değişince güncellenir, ürün kartlarında "En fazla %30 indirim" gösterir |
+| `snippets/stok-bildirimi.liquid` + `assets/stok-bildirimi.js` | Tükenmiş varyantta "Gelince haber verelim" formu; müşterinin e-postasını ürün, varyant, SKU ve bağlantıyla Shopify'ın iletişim formu üzerinden size iletir |
 
 ## Kurulum
 
@@ -224,6 +225,17 @@ Müşteri "Bireysel" veya "Kurumsal" seçer; "Kurumsal"da firma unvanı, vergi d
 ```
 
 Rozet, varyantın **Karşılaştırma fiyatı** satış fiyatından yüksekse görünür ve aradaki farkı `bicim` ile yüzde (`yuzde`, varsayılan), tutar (`tutar`) veya ikisi birden (`ikisi`) olarak yazar; `metin` ile kendi cümlenizi kurabilirsiniz (`[oran]` ve `[tutar]` yer tutucularıyla). Yüzde aşağı yuvarlanır, böylece indirim hiçbir zaman olduğundan büyük görünmez. Ürün sayfasında müşteri varyant değiştirdikçe güncellenir; kart modunda stokta olan varyantlar arasında indirim farklıysa "En fazla" ile başlar ve JavaScript kullanmaz. `en_az_oran` altındaki indirimlerde ve `indirim-rozeti-yok` etiketli ürünlerde rozet çıkmaz. Snippet fiyat veya oran uydurmaz, her şeyi ürününüzdeki fiyatlardan hesaplar; karşılaştırma fiyatının gerçekten uyguladığınız önceki fiyat olması ve indirim duyurularına ilişkin mevzuata uyum sizin sorumluluğunuzdadır. Dawn'ın kendi "İndirim" rozetiyle birlikte görünmesini istemiyorsanız temanın rozetini kaldırın.
+
+### "Gelince haber ver" stok bildirim formu
+
+`assets/stok-bildirimi.js` dosyasını da yükleyin. Ürün sayfasında "Sepete ekle" butonunun altına (Dawn tabanlı temalarda ürün şablonuna bir "Özel Liquid" bloğu olarak da eklenebilir):
+
+```liquid
+{% render 'stok-bildirimi', urun: product %}
+{% render 'stok-bildirimi', urun: product, telefon: true, aydinlatma_url: '/pages/kvkk-aydinlatma-metni' %}
+```
+
+Form yalnızca seçili varyant tükenmişken görünür (stokta yokken satışa devam eden varyantlarda çıkmaz) ve müşteri varyant değiştirdikçe güncellenir. Talep, Shopify'ın yerleşik iletişim formuyla mağazanızın iletişim e-postasına "Stok bildirimi" konusu, ürün adı, varyant, SKU ve ürün bağlantısıyla gelir; uygulama veya veritabanı gerekmez. Snippet müşteriye otomatik e-posta göndermez: ürün stoğa girince talep sahiplerine siz yazarsınız. Toplanan adresler pazarlama izni yerine geçmez, bunlara kampanya e-postası göndermeyin. `aydinlatma_url` verirseniz formun altında KVKK aydınlatma metninize bağlantı çıkar; snippet hukuki metin içermez. `stok-bildirimi-yok` etiketli ürünlerde ve hediye kartlarında form gösterilmez. Kurulumdan sonra bir deneme talebi gönderip e-postanın geldiğini kontrol edin.
 
 ## Türkiye için Shopify kontrol listesi
 

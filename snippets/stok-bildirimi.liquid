@@ -1,0 +1,122 @@
+{%- comment -%}
+  "Gelince haber ver" stok bildirim talebi formu (ürün sayfası, tükenmiş varyantlar)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Kullanım (ürün sayfasında, "Sepete ekle" butonunun altına; assets/stok-bildirimi.js de yüklenmeli):
+    {% render 'stok-bildirimi', urun: product %}
+    {% render 'stok-bildirimi', urun: product, telefon: true, aydinlatma_url: '/pages/kvkk-aydinlatma-metni' %}
+    {% render 'stok-bildirimi', urun: product, baslik: 'Stoğa girince size yazalım', aciklama: 'Kendi notunuz.' %}
+
+  urun           : (isteğe bağlı) ürün nesnesi. Verilmezse sayfanın product nesnesi kullanılır.
+  baslik         : (isteğe bağlı) kutu başlığı. Varsayılan "Gelince haber verelim".
+  aciklama       : (isteğe bağlı) başlığın altındaki kısa yazı.
+                   Varsayılan "Bu seçenek şu an stokta yok. E-posta adresinizi bırakın, stoğa girince size yazalım."
+  buton          : (isteğe bağlı) gönder butonu yazısı. Varsayılan "Haber ver".
+  tesekkur       : (isteğe bağlı) gönderimden sonra görünen yazı.
+                   Varsayılan "Talebiniz alındı. Ürün stoğa girince size e-posta göndereceğiz."
+  telefon        : (isteğe bağlı) true verilirse isteğe bağlı bir telefon alanı da eklenir.
+  aydinlatma_url : (isteğe bağlı) KVKK aydınlatma metninizin adresi. Verilirse formun altında
+                   "Kişisel verilerinizin işlenmesi hakkında: Aydınlatma metni" bağlantısı görünür.
+  aydinlatma_yazi: (isteğe bağlı) bağlantının önündeki yazıyı kendi cümlenizle değiştirin.
+  haric_etiket   : (isteğe bağlı) bu etiketi taşıyan ürünlerde form gösterilmez.
+                   Varsayılan "stok-bildirimi-yok" (ör. bir daha üretilmeyecek ürünler için).
+
+  Notlar:
+  - Form, Shopify'ın yerleşik iletişim formunu (form 'contact') kullanır. Talep, iletişim formu
+    mesajlarınızın geldiği yere (mağazanızın iletişim e-postası) "Stok bildirimi" konusu, ürün adı,
+    varyant, SKU ve ürün bağlantısıyla düşer. Kurulumdan sonra bir deneme talebi gönderip kontrol edin. Uygulama veya veritabanı gerekmez.
+  - Snippet müşteriye otomatik e-posta GÖNDERMEZ. Ürün stoğa girince talep sahiplerine kendiniz
+    yazmalısınız. Talep sayısı çoksa bir stok bildirim uygulaması daha uygun olabilir.
+  - Form yalnızca seçili varyant tükenmişken görünür (envanteri takip edilen, stoğu bitmiş ve
+    "stokta yokken satışa devam et" kapalı varyantlar). Müşteri varyant değiştirdikçe görünürlük ve
+    gönderilecek varyant bilgisi güncellenir. Snippet, sepete ekleme formundaki name="id" alanını
+    izler (Dawn ve türevlerinde bu alan varyant değişince güncellenir).
+  - Gönderimden sonra Shopify sayfayı yeniler ve teşekkür yazısı görünür. Shopify şüpheli
+    gönderimlerde müşteriye ayrıca bir doğrulama (captcha) sayfası gösterebilir; bu normaldir.
+  - Toplanan e-posta adresi yalnızca stok bildirimi içindir; pazarlama izni (İYS/ETK onayı)
+    yerine geçmez, bu adreslere kampanya e-postası göndermeyin. Hangi bilgilendirmenin gerektiğini
+    hukuk danışmanınızla değerlendirin; snippet hiçbir hukuki metin içermez.
+  - Aynı sayfada başka bir iletişim formu varsa, gönderim sonrası teşekkür yazısı ikisinde de
+    görünebilir.
+{%- endcomment -%}
+{%- liquid
+  assign urun = urun | default: product
+  assign baslik = baslik | default: 'Gelince haber verelim'
+  assign aciklama = aciklama | default: 'Bu seçenek şu an stokta yok. E-posta adresinizi bırakın, stoğa girince size yazalım.'
+  assign buton = buton | default: 'Haber ver'
+  assign tesekkur = tesekkur | default: 'Talebiniz alındı. Ürün stoğa girince size e-posta göndereceğiz.'
+  assign aydinlatma_yazi = aydinlatma_yazi | default: 'Kişisel verilerinizin işlenmesi hakkında:'
+  assign haric_etiket = haric_etiket | default: 'stok-bildirimi-yok' | strip
+
+  assign goster = true
+  if urun == blank or urun.gift_card?
+    assign goster = false
+  elsif haric_etiket != blank and urun.tags contains haric_etiket
+    assign goster = false
+  endif
+
+  assign secili = urun.selected_or_first_available_variant
+-%}
+{%- if goster and secili != blank -%}
+  {%- liquid
+    assign form_kimligi = 'StokBildirimi-' | append: urun.id
+    assign tek_varyant = urun.has_only_default_variant
+    assign secili_ad = urun.title
+    assign secili_varyant = ''
+    unless tek_varyant
+      assign secili_varyant = secili.title
+      assign secili_ad = secili_ad | append: ' - ' | append: secili.title
+    endunless
+  -%}
+<div class="stok-bildirimi" data-stok-bildirimi
+     style="margin: 1rem 0; padding: 1rem; border: 1px solid rgba(0,0,0,.15); border-radius: 8px;"
+     {% if secili.available %}hidden{% endif %}>
+  {%- form 'contact', id: form_kimligi, class: 'stok-bildirimi__form' -%}
+    {%- if form.posted_successfully? -%}
+      <p role="status" data-stok-bildirimi-tamam style="margin: 0; font-weight: 600; color: #1a7f37;">{{ tesekkur | escape }}</p>
+    {%- else -%}
+      <p style="margin: 0 0 .25rem; font-weight: 700;">{{ baslik | escape }}</p>
+      <p style="margin: 0 0 .75rem; font-size: .9em; opacity: .85;">{{ aciklama | escape }}</p>
+      {%- if form.errors -%}
+        <div role="alert" style="margin: 0 0 .75rem; font-size: .9em; color: #b42318;">{{ form.errors | default_errors }}</div>
+      {%- endif -%}
+      <input type="hidden" name="contact[Konu]" value="Stok bildirimi">
+      <input type="hidden" name="contact[Ürün]" value="{{ urun.title | escape }}">
+      <input type="hidden" name="contact[Varyant]" value="{{ secili_varyant | escape }}" data-alan="varyant">
+      <input type="hidden" name="contact[SKU]" value="{{ secili.sku | escape }}" data-alan="sku">
+      <input type="hidden" name="contact[Ürün bağlantısı]" value="{{ shop.url }}{{ secili.url }}" data-alan="baglanti">
+      <input type="hidden" name="contact[body]" value="Stok bildirimi talebi: {{ secili_ad | escape }}" data-alan="govde" data-urun="{{ urun.title | escape }}">
+      <div style="display: flex; flex-wrap: wrap; gap: .5rem;">
+        <label for="{{ form_kimligi }}-eposta" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">E-posta adresiniz</label>
+        <input type="email" id="{{ form_kimligi }}-eposta" name="contact[email]" required autocomplete="email"
+               placeholder="E-posta adresiniz" value="{{ form.email | escape }}"
+               style="flex: 1 1 14rem; min-width: 0; padding: .6rem .75rem; border: 1px solid rgba(0,0,0,.3); border-radius: 6px; font: inherit;">
+        {%- if telefon == true -%}
+          <label for="{{ form_kimligi }}-telefon" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">Telefon (isteğe bağlı)</label>
+          <input type="tel" id="{{ form_kimligi }}-telefon" name="contact[Telefon]" autocomplete="tel"
+                 placeholder="Telefon (isteğe bağlı)"
+                 style="flex: 1 1 10rem; min-width: 0; padding: .6rem .75rem; border: 1px solid rgba(0,0,0,.3); border-radius: 6px; font: inherit;">
+        {%- endif -%}
+        <button type="submit" style="flex: 0 0 auto; padding: .6rem 1.1rem; border: 0; border-radius: 6px; background: #111; color: #fff; font: inherit; font-weight: 600; cursor: pointer;">{{ buton | escape }}</button>
+      </div>
+      {%- if aydinlatma_url != blank -%}
+        <p style="margin: .6rem 0 0; font-size: .8em; opacity: .75;">{{ aydinlatma_yazi | escape }} <a href="{{ aydinlatma_url }}" target="_blank" rel="noopener">Aydınlatma metni</a></p>
+      {%- endif -%}
+    {%- endif -%}
+  {%- endform -%}
+  <script type="application/json" data-stok-bildirimi-varyantlar>
+    {
+      {%- for v in urun.variants -%}
+        {%- liquid
+          assign v_ad = v.title
+          if tek_varyant
+            assign v_ad = ''
+          endif
+        -%}
+        "{{ v.id }}": { "a": {{ v.available | json }}, "t": {{ v_ad | json }}, "s": {{ v.sku | default: '' | json }}, "u": {{ shop.url | append: v.url | json }} }{% unless forloop.last %},{% endunless %}
+      {%- endfor -%}
+    }
+  </script>
+</div>
+<script src="{{ 'stok-bildirimi.js' | asset_url }}" defer></script>
+{%- endif -%}
