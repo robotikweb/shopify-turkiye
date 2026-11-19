@@ -1,0 +1,188 @@
+{%- comment -%}
+  Beden tablosu açılır penceresi (ürün sayfası)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Kullanım (ürün sayfasında, varyant seçicinin hemen altına veya üstüne):
+    {% render 'beden-tablosu', urun: product, sayfa: 'beden-tablosu' %}
+    {% render 'beden-tablosu', urun: product, sayfa: 'beden-tablosu', metin: 'Bedenimi nasıl seçerim?', ek_metin: 'Kendi notunuz.' %}
+    {% render 'beden-tablosu', urun: product, secenekler: 'Beden,Numara,Yaş' %}
+
+  Tablonun içeriği her zaman sizin oluşturduğunuz bir Shopify SAYFASINDAN gelir
+  (Online Mağaza > Sayfalar). Hangi sayfanın gösterileceği şu sırayla belirlenir:
+    1. Ürün meta alanı custom.beden_tablosu (tür: "Sayfa" referansı). Ürüne özel tablo için.
+    2. Ürün etiketi "beden-tablosu:sayfa-adresi" (ör. beden-tablosu:ayakkabi-numara-tablosu).
+       Toplu düzenleyiciyle çok ürüne aynı tabloyu atamak için.
+    3. sayfa parametresi: tüm beden seçenekli ürünlerde kullanılacak varsayılan sayfa.
+
+  urun         : (isteğe bağlı) ürün nesnesi. Verilmezse sayfanın product nesnesi kullanılır.
+  sayfa        : (isteğe bağlı) varsayılan tablo sayfasının adresindeki kısa ad (handle).
+                 /pages/beden-tablosu için 'beden-tablosu'. Varsayılan yoktur.
+  secenekler   : (isteğe bağlı) virgülle ayrılmış seçenek adları. Varsayılan sayfa (3. madde) yalnızca
+                 bu adlardan birini taşıyan ürünlerde gösterilir. Varsayılan 'Beden,Numara,Size'.
+                 Meta alan veya etiketle atanan tablo (1. ve 2. madde) seçenekten bağımsız gösterilir.
+  her_zaman    : (isteğe bağlı) true verilirse varsayılan sayfa seçenek adına bakmadan her üründe gösterilir.
+  etiket_onek  : (isteğe bağlı) 2. maddedeki etiket ön eki. Varsayılan 'beden-tablosu:'.
+  haric_etiket : (isteğe bağlı) bu etiketi taşıyan ürünlerde bağlantı gösterilmez.
+                 Varsayılan 'beden-tablosu-yok'. Hediye kartlarında hiç gösterilmez.
+  metin        : (isteğe bağlı) bağlantı yazısı. Varsayılan "Beden tablosu".
+  baslik       : (isteğe bağlı) pencere başlığı. Verilmezse sayfanın başlığı kullanılır.
+  ek_metin     : (isteğe bağlı) tablonun altına eklenecek kendi notunuz. Varsayılan metin yoktur.
+
+  Notlar:
+  - Snippet hiçbir ölçü, beden veya tablo içermez; tabloyu sayfa düzenleyicide kendiniz oluşturursunuz
+    (tablo ekle düğmesi veya HTML görünümü). Tablo dar ekranlarda yatay kaydırılır.
+  - Bağlantı aslında sayfaya giden normal bir <a> bağlantısıdır: JavaScript çalışmazsa veya tarayıcı
+    <dialog> desteklemiyorsa müşteri tablo sayfasına gider. Destekleyen tarayıcılarda sayfa
+    değiştirmeden açılır pencerede gösterilir; Esc, "Kapat" veya pencere dışına tıklamak kapatır.
+  - Meta alan için Ayarlar > Meta alanlar ve meta nesneler > Ürünler bölümünde ad alanı ve anahtarı
+    custom.beden_tablosu, türü "Sayfa" olan bir tanım oluşturun. Tek satırlık metin türünde sayfa
+    kısa adı yazmak da çalışır.
+  - Etiketteki sayfa adı, sayfanın adresindeki kısa adla birebir aynı olmalıdır (küçük harf, Türkçe
+    karakter yerine adreste ne yazıyorsa o). Gizli (yayında olmayan) sayfalar gösterilmez.
+  - Bulunamayan sayfa, boş sayfa veya eksik parametre durumunda müşteriye hiçbir şey gösterilmez;
+    tema düzenleyicide yalnızca size bir uyarı çıkar.
+  - Varyant değişince Dawn'ın ürün bilgisini yeniden çizmesi pencereyi bozmaz: tıklamalar belge
+    düzeyinde dinlenir.
+  - Dawn'ın ürün sayfasındaki "Açılır pencere" (Pop-up) bloğunu beden tablosu için kullanıyorsanız
+    ikisini birlikte kullanmayın.
+  - Uygulama veya ek dosya gerektirmez.
+{%- endcomment -%}
+{%- liquid
+  assign urun = urun | default: product
+  assign etiket_onek = etiket_onek | default: 'beden-tablosu:' | strip
+  assign haric_etiket = haric_etiket | default: 'beden-tablosu-yok' | strip
+  assign metin = metin | default: 'Beden tablosu' | strip
+  assign ek_metin = ek_metin | default: '' | strip
+  assign secenek_listesi = secenekler | default: 'Beden,Numara,Size' | split: ','
+
+  assign uygun = false
+  if urun != blank
+    assign uygun = true
+    if urun.gift_card?
+      assign uygun = false
+    elsif haric_etiket != blank and urun.tags contains haric_etiket
+      assign uygun = false
+    endif
+  endif
+
+  assign tablo_sayfasi = nil
+  assign kaynak = ''
+  if uygun
+    # 1. Ürün meta alanı (Sayfa referansı veya sayfa kısa adı)
+    assign meta = urun.metafields.custom.beden_tablosu
+    if meta != blank
+      if meta.type == 'page_reference'
+        assign tablo_sayfasi = meta.value
+      else
+        assign meta_handle = meta.value | append: '' | strip
+        if meta_handle != blank
+          assign tablo_sayfasi = pages[meta_handle]
+        endif
+      endif
+      assign kaynak = 'meta alan custom.beden_tablosu'
+    endif
+
+    # 2. "beden-tablosu:sayfa-adi" etiketi
+    if kaynak == '' and etiket_onek != blank
+      assign onek_uzunluk = etiket_onek.size
+      for etiket in urun.tags
+        assign bas = etiket | slice: 0, onek_uzunluk
+        if bas == etiket_onek
+          assign etiket_handle = etiket | slice: onek_uzunluk, 255 | strip
+          if etiket_handle != blank
+            assign tablo_sayfasi = pages[etiket_handle]
+            assign kaynak = 'etiket ' | append: etiket
+            break
+          endif
+        endif
+      endfor
+    endif
+
+    # 3. Varsayılan sayfa (yalnızca beden seçenekli ürünlerde)
+    if kaynak == '' and sayfa != blank
+      assign secenek_var = false
+      if her_zaman == true
+        assign secenek_var = true
+      else
+        for ad in secenek_listesi
+          assign ad_temiz = ad | strip
+          if ad_temiz != blank and urun.options_by_name[ad_temiz] != blank
+            assign secenek_var = true
+            break
+          endif
+        endfor
+      endif
+      if secenek_var
+        assign sayfa_handle = sayfa | strip
+        assign tablo_sayfasi = pages[sayfa_handle]
+        assign kaynak = 'sayfa parametresi'
+      endif
+    endif
+  endif
+
+  assign goster = false
+  if tablo_sayfasi != blank and tablo_sayfasi.content != blank
+    assign goster = true
+  endif
+  assign pencere_basligi = baslik | default: tablo_sayfasi.title | default: metin
+-%}
+{%- if goster -%}
+<div class="beden-tablosu" style="margin: .5rem 0;">
+  <a href="{{ tablo_sayfasi.url }}" data-beden-ac aria-haspopup="dialog"
+     style="display: inline-flex; align-items: center; gap: .4em; color: inherit; font-size: .9em; text-underline-offset: .2em;">
+    <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none;"><rect x="2" y="7" width="20" height="10" rx="1.5"/><path d="M6 7v4M10 7v3M14 7v4M18 7v3"/></svg>
+    <span>{{ metin | escape }}</span>
+  </a>
+  <dialog class="beden-tablosu-pencere" aria-label="{{ pencere_basligi | escape }}"
+          style="width: min(760px, calc(100vw - 2rem)); max-width: none; max-height: 85vh; padding: 0; border: 0; border-radius: 10px; background: #fff; color: #121212; box-shadow: 0 12px 40px rgba(0,0,0,.25);">
+    <div style="padding: 1.1rem 1.25rem 1.25rem;">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: .75rem;">
+        <p style="margin: 0; font-size: 1.15em; font-weight: 600; line-height: 1.3;">{{ pencere_basligi | escape }}</p>
+        <button type="button" data-beden-kapat aria-label="Kapat"
+                style="flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2.25rem; height: 2.25rem; padding: 0; border: 0; border-radius: 50%; background: rgba(0,0,0,.06); color: inherit; cursor: pointer;">
+          <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="beden-tablosu-icerik rte">{{ tablo_sayfasi.content }}</div>
+      {%- if ek_metin != blank -%}<p style="margin: .75rem 0 0; font-size: .85em; opacity: .8;">{{ ek_metin | escape }}</p>{%- endif -%}
+    </div>
+  </dialog>
+</div>
+<style>
+  .beden-tablosu-pencere::backdrop { background: rgba(0,0,0,.5); }
+  .beden-tablosu-icerik { overflow-x: auto; -webkit-overflow-scrolling: touch; font-size: .9em; }
+  .beden-tablosu-icerik table { width: 100%; min-width: max-content; border-collapse: collapse; margin: 0; table-layout: auto; }
+  .beden-tablosu-icerik th, .beden-tablosu-icerik td { padding: .45em .7em; border: 1px solid rgba(0,0,0,.12); text-align: center; white-space: nowrap; }
+  .beden-tablosu-icerik tr:first-child > *, .beden-tablosu-icerik thead th { background: rgba(0,0,0,.05); font-weight: 600; }
+  .beden-tablosu-icerik img { max-width: 100%; height: auto; }
+</style>
+<script>
+(function () {
+  if (window.bedenTablosuHazir) return;
+  window.bedenTablosuHazir = true;
+  document.addEventListener('click', function (e) {
+    var hedef = e.target;
+    if (!hedef || typeof hedef.closest !== 'function') return;
+    var ac = hedef.closest('[data-beden-ac]');
+    if (ac) {
+      var kok = ac.closest('.beden-tablosu');
+      var pencere = kok && kok.querySelector('dialog.beden-tablosu-pencere');
+      // <dialog> desteklenmiyorsa bağlantı normal şekilde tablo sayfasını açar
+      if (!pencere || typeof pencere.showModal !== 'function') return;
+      e.preventDefault();
+      if (!pencere.open) pencere.showModal();
+      return;
+    }
+    var acik = hedef.closest('dialog.beden-tablosu-pencere');
+    // Pencere kutusunun kendisine tıklanması = kenar boşluğu dışı (arka plan)
+    if (acik && (hedef === acik || hedef.closest('[data-beden-kapat]'))) acik.close();
+  });
+})();
+</script>
+{%- elsif request.design_mode and uygun -%}
+  {%- if kaynak != '' -%}
+<p style="margin: .5rem 0; padding: .5rem .75rem; border: 1px dashed #c00; color: #c00; font-size: .85em;">beden-tablosu: {{ kaynak | escape }} ile belirtilen sayfa bulunamadı, yayında değil veya içeriği boş. Bu uyarı yalnızca tema düzenleyicide görünür.</p>
+  {%- elsif sayfa == blank -%}
+<p style="margin: .5rem 0; padding: .5rem .75rem; border: 1px dashed #c00; color: #c00; font-size: .85em;">beden-tablosu: bu ürün için tablo atanmamış. "sayfa" parametresini verin (ör. sayfa: 'beden-tablosu') veya ürüne meta alan/etiket ekleyin. Bu uyarı yalnızca tema düzenleyicide görünür.</p>
+  {%- endif -%}
+{%- endif -%}

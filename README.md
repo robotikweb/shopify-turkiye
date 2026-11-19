@@ -26,6 +26,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/fatura-bilgisi.liquid` + `assets/fatura-bilgisi.js` | Sepette "Bireysel / Kurumsal" fatura seçimi; kurumsalda firma unvanı, vergi dairesi ve vergi no zorunlu olur ve siparişe kaydedilir |
 | `snippets/indirim-rozeti.liquid` | Karşılaştırma fiyatı olan ürünlerde "%25 indirim" veya "150,00 TL indirim" rozeti; ürün sayfasında varyant değişince güncellenir, ürün kartlarında "En fazla %30 indirim" gösterir |
 | `snippets/stok-bildirimi.liquid` + `assets/stok-bildirimi.js` | Tükenmiş varyantta "Gelince haber verelim" formu; müşterinin e-postasını ürün, varyant, SKU ve bağlantıyla Shopify'ın iletişim formu üzerinden size iletir |
+| `snippets/beden-tablosu.liquid` | Ürün sayfasında "Beden tablosu" bağlantısı; sizin oluşturduğunuz tablo sayfasını sayfadan çıkmadan açılır pencerede gösterir. Ürüne özel tablo meta alan veya etiketle atanır, yalnızca beden seçenekli ürünlerde çıkar |
 
 ## Kurulum
 
@@ -236,6 +237,18 @@ Rozet, varyantın **Karşılaştırma fiyatı** satış fiyatından yüksekse g�
 ```
 
 Form yalnızca seçili varyant tükenmişken görünür (stokta yokken satışa devam eden varyantlarda çıkmaz) ve müşteri varyant değiştirdikçe güncellenir. Talep, Shopify'ın yerleşik iletişim formuyla mağazanızın iletişim e-postasına "Stok bildirimi" konusu, ürün adı, varyant, SKU ve ürün bağlantısıyla gelir; uygulama veya veritabanı gerekmez. Snippet müşteriye otomatik e-posta göndermez: ürün stoğa girince talep sahiplerine siz yazarsınız. Toplanan adresler pazarlama izni yerine geçmez, bunlara kampanya e-postası göndermeyin. `aydinlatma_url` verirseniz formun altında KVKK aydınlatma metninize bağlantı çıkar; snippet hukuki metin içermez. `stok-bildirimi-yok` etiketli ürünlerde ve hediye kartlarında form gösterilmez. Kurulumdan sonra bir deneme talebi gönderip e-postanın geldiğini kontrol edin.
+
+### Beden tablosu
+
+Önce **Online Mağaza > Sayfalar** bölümünde beden tablonuzu kendi ölçülerinizle bir sayfa olarak oluşturun (ör. adresi `/pages/beden-tablosu`). Ürün sayfasında varyant seçicinin altına veya üstüne (Dawn tabanlı temalarda ürün şablonuna bir "Özel Liquid" bloğu olarak da eklenebilir):
+
+```liquid
+{% render 'beden-tablosu', urun: product, sayfa: 'beden-tablosu' %}
+{% render 'beden-tablosu', urun: product, sayfa: 'beden-tablosu', metin: 'Bedenimi nasıl seçerim?', ek_metin: 'Kendi notunuz.' %}
+{% render 'beden-tablosu', urun: product, secenekler: 'Beden,Numara,Yaş' %}
+```
+
+Varsayılan sayfa yalnızca "Beden", "Numara" veya "Size" seçeneği olan ürünlerde gösterilir (`secenekler` ile değiştirilir, `her_zaman: true` ile her üründe). Farklı ürün gruplarına farklı tablo için ürüne `beden-tablosu:sayfa-adi` etiketi ekleyin (ör. `beden-tablosu:ayakkabi-numara-tablosu`) veya **Ayarlar > Meta alanlar ve meta nesneler > Ürünler** bölümünde `custom.beden_tablosu` adlı "Sayfa" türünde bir tanım oluşturup ürüne sayfa seçin; öncelik meta alan, sonra etiket, sonra `sayfa` parametresidir. Bağlantı sayfaya giden normal bir bağlantıdır; tarayıcı destekliyorsa tablo açılır pencerede gösterilir, dar ekranlarda yatay kaydırılır ve Esc, "Kapat" veya pencere dışına tıklamayla kapanır. `beden-tablosu-yok` etiketli ürünlerde ve hediye kartlarında bağlantı çıkmaz. Snippet hiçbir ölçü veya beden içermez; sayfa bulunamazsa müşteriye bir şey gösterilmez, tema düzenleyicide yalnızca size uyarı çıkar. Dawn'ın "Açılır pencere" bloğunu beden tablosu için kullanıyorsanız ikisini birlikte kullanmayın. Uygulama veya ek dosya gerektirmez.
 
 ## Türkiye için Shopify kontrol listesi
 
