@@ -27,6 +27,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/indirim-rozeti.liquid` | Karşılaştırma fiyatı olan ürünlerde "%25 indirim" veya "150,00 TL indirim" rozeti; ürün sayfasında varyant değişince güncellenir, ürün kartlarında "En fazla %30 indirim" gösterir |
 | `snippets/stok-bildirimi.liquid` + `assets/stok-bildirimi.js` | Tükenmiş varyantta "Gelince haber verelim" formu; müşterinin e-postasını ürün, varyant, SKU ve bağlantıyla Shopify'ın iletişim formu üzerinden size iletir |
 | `snippets/beden-tablosu.liquid` | Ürün sayfasında "Beden tablosu" bağlantısı; sizin oluşturduğunuz tablo sayfasını sayfadan çıkmadan açılır pencerede gösterir. Ürüne özel tablo meta alan veya etiketle atanır, yalnızca beden seçenekli ürünlerde çıkar |
+| `snippets/hediye-paketi.liquid` + `assets/hediye-paketi.js` | Sepette "Hediye paketi yapılsın" seçeneği ve karakter sınırlı hediye notu; seçim ve not siparişe kaydedilir, paketten vazgeçilince not silinir |
 
 ## Kurulum
 
@@ -249,6 +250,18 @@ Form yalnızca seçili varyant tükenmişken görünür (stokta yokken satışa 
 ```
 
 Varsayılan sayfa yalnızca "Beden", "Numara" veya "Size" seçeneği olan ürünlerde gösterilir (`secenekler` ile değiştirilir, `her_zaman: true` ile her üründe). Farklı ürün gruplarına farklı tablo için ürüne `beden-tablosu:sayfa-adi` etiketi ekleyin (ör. `beden-tablosu:ayakkabi-numara-tablosu`) veya **Ayarlar > Meta alanlar ve meta nesneler > Ürünler** bölümünde `custom.beden_tablosu` adlı "Sayfa" türünde bir tanım oluşturup ürüne sayfa seçin; öncelik meta alan, sonra etiket, sonra `sayfa` parametresidir. Bağlantı sayfaya giden normal bir bağlantıdır; tarayıcı destekliyorsa tablo açılır pencerede gösterilir, dar ekranlarda yatay kaydırılır ve Esc, "Kapat" veya pencere dışına tıklamayla kapanır. `beden-tablosu-yok` etiketli ürünlerde ve hediye kartlarında bağlantı çıkmaz. Snippet hiçbir ölçü veya beden içermez; sayfa bulunamazsa müşteriye bir şey gösterilmez, tema düzenleyicide yalnızca size uyarı çıkar. Dawn'ın "Açılır pencere" bloğunu beden tablosu için kullanıyorsanız ikisini birlikte kullanmayın. Uygulama veya ek dosya gerektirmez.
+
+### Hediye paketi ve hediye notu
+
+`assets/hediye-paketi.js` dosyasını da yükleyin. Dawn tabanlı temalarda `sections/main-cart-footer.liquid` (sepet sayfası) ve `snippets/cart-drawer.liquid` (sepet çekmecesi) içinde `<div class="cart__ctas"` satırının hemen üstüne:
+
+```liquid
+{% render 'hediye-paketi', form_kimligi: 'cart' %}
+{% render 'hediye-paketi', form_kimligi: 'CartDrawer-Form' %}
+{% render 'hediye-paketi', form_kimligi: 'cart', not_uzunlugu: 150, aciklama: 'Kendi notunuz.' %}
+```
+
+Müşteri "İstemiyorum" veya "Hediye paketi yapılsın" seçer; ikincisinde isteğe bağlı bir hediye notu kutusu açılır (varsayılan en fazla 200 karakter, `not_uzunlugu` ile 20–500 arası; `not_alani: false` ile kapatılır). Bilgiler siparişe "Hediye paketi" (Evet / Hayır) ve "Hediye notu" sepet özellikleri olarak kaydedilir ve sipariş detayında "Ek ayrıntılar" altında görünür. Seçim değişince sepete hemen kaydedilir; paketten vazgeçilirse not sepetten silinir. Sepette yalnızca dijital ürün veya hediye kartı varsa alan görünmez. Snippet yalnızca isteği kaydeder: siparişe ücret veya ürün eklemez ve hiçbir ücret ya da koşul varsaymaz; paket ücretliyse bunu `aciklama` ile kendiniz yazın ve ücreti ayrıca tahsil edin. Ürün sayfasındaki "Hemen al" ve hızlı ödeme butonları sepeti atladığı için o siparişlerde hediye bilgisi boş kalır. Fatura bilgisi ve TC Kimlik No alanlarıyla birlikte kullanılabilir.
 
 ## Türkiye için Shopify kontrol listesi
 

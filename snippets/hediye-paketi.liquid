@@ -1,0 +1,128 @@
+{%- comment -%}
+  Hediye paketi ve hediye notu seçeneği (sepet sayfası ve sepet çekmecesi)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Amaç: Müşteri sepette "Hediye paketi yapılsın" seçeneğini işaretler ve isterse pakete eklenecek kısa
+  bir not yazar. Seçim ve not siparişe sepet özelliği (cart attribute) olarak kaydedilir ve sipariş
+  detayında "Ek ayrıntılar" altında görünür; paketi hazırlarken buradan bakarsınız.
+
+  Kullanım: assets/hediye-paketi.js dosyasını da yükleyin. Dawn tabanlı temalarda
+  sections/main-cart-footer.liquid içinde <div class="cart__ctas" satırının hemen üstüne:
+    {% render 'hediye-paketi', form_kimligi: 'cart' %}
+
+  Sepet çekmecesinde (snippets/cart-drawer.liquid içinde <div class="cart__ctas" satırının üstüne):
+    {% render 'hediye-paketi', form_kimligi: 'CartDrawer-Form' %}
+
+  Diğer örnekler:
+    {% render 'hediye-paketi', form_kimligi: 'cart', not_uzunlugu: 150, aciklama: 'Hediye paketi ücretsizdir.' %}
+    {% render 'hediye-paketi', form_kimligi: 'cart', not_alani: false, secenek_metni: 'Hediye olarak paketlensin' %}
+
+  Parametreler:
+  form_kimligi  : (isteğe bağlı) Alan sepet formunun DIŞINDAYSA, formun id değeri. Seçimin siparişe
+                  kaydedilmesi için gerekir. Dawn'da sepet sayfası 'cart', sepet çekmecesi
+                  'CartDrawer-Form'. Alan formun içindeyse vermeyin.
+  baslik        : (isteğe bağlı) Başlık. Varsayılan "Hediye paketi".
+  secenek_metni : (isteğe bağlı) Seçeneğin yazısı. Varsayılan "Hediye paketi yapılsın".
+  not_alani     : (isteğe bağlı) false verilirse not kutusu gösterilmez. Varsayılan true.
+  not_uzunlugu  : (isteğe bağlı) Notun en fazla karakter sayısı (20–500). Varsayılan 200.
+  not_ipucu     : (isteğe bağlı) Not kutusunun içindeki soluk örnek yazı. Varsayılan
+                  "Örn. İyi ki doğdun! Sevgiyle, Ayşe".
+  aciklama      : (isteğe bağlı) Seçeneğin altında gösterilecek kendi notunuz (ör. paketin ücretli
+                  veya ücretsiz olduğu, faturanın pakete konup konmadığı). Varsayılan metin yoktur.
+
+  Siparişe kaydedilen sepet özellikleri:
+    "Hediye paketi" (Evet / Hayır), "Hediye notu"
+
+  Notlar:
+  - Snippet yalnızca müşterinin isteğini kaydeder: siparişe ücret eklemez, ürün eklemez ve hiçbir ücret,
+    süre veya koşul varsaymaz. Hediye paketini ücretli yapıyorsanız bunu aciklama ile açıkça yazın ve
+    ücreti ayrı bir ürün ya da kargo/ödeme ayarlarınızla kendiniz tahsil edin.
+  - Sepette yalnızca kargo gerektirmeyen ürünler (dijital ürün, hediye kartı) varsa veya sepet boşsa
+    hiçbir şey gösterilmez.
+  - Müşteri seçeneği veya notu değiştirdiğinde bilgi hemen sepete kaydedilir (Shopify'ın /cart/update.js
+    adresiyle, Dawn'ın sipariş notu gibi); ayrıca ödemeye geçerken sepet formuyla da gönderilir.
+    "Hediye paketi"nden vazgeçilirse not sepetten silinir.
+  - JavaScript çalışmazsa seçenek ve not yine kaydedilir; yalnızca karakter sayacı çalışmaz ve
+    vazgeçilen paketin eski notu siparişte kalabilir.
+  - Not, tarayıcı tarafından not_uzunlugu karakterle sınırlanır; satır sonları korunur. Notu paket
+    kartına yazmadan önce okuyun: müşterinin yazdığı metin olduğu gibi gelir.
+  - Kontrol yalnızca sepet sayfasında ve sepet çekmecesindedir; Shopify'ın ödeme sayfası (checkout)
+    değiştirilmez. Ürün sayfasındaki "Hemen al" ve sepetteki hızlı ödeme butonları (Shop Pay, PayPal vb.)
+    sepeti atladığı için o yoldan gelen siparişlerde hediye bilgisi boş kalır.
+  - Hediye notunda alıcının adı gibi kişisel veriler bulunabilir; aydınlatma metninizde amacını belirtin.
+  - Uygulama gerektirmez. Fatura bilgisi ve TC Kimlik No alanlarıyla birlikte kullanılabilir.
+{%- endcomment -%}
+{%- liquid
+  assign goster = true
+  if cart == blank or cart.item_count == 0 or cart.requires_shipping == false
+    assign goster = false
+  endif
+
+  assign baslik = baslik | default: 'Hediye paketi'
+  assign secenek_metni = secenek_metni | default: 'Hediye paketi yapılsın'
+  assign not_ipucu = not_ipucu | default: 'Örn. İyi ki doğdun! Sevgiyle, Ayşe'
+  assign not_goster = true
+  if not_alani == false
+    assign not_goster = false
+  endif
+
+  assign uzunluk = not_uzunlugu | default: 200 | plus: 0
+  if uzunluk < 20
+    assign uzunluk = 20
+  endif
+  if uzunluk > 500
+    assign uzunluk = 500
+  endif
+
+  assign ek = form_kimligi | default: 'sepet' | handleize
+
+  assign secili = false
+  if cart.attributes['Hediye paketi'] == 'Evet'
+    assign secili = true
+  endif
+  assign mevcut_not = cart.attributes['Hediye notu'] | default: '' | slice: 0, uzunluk
+
+  assign form_attr = ''
+  if form_kimligi != blank
+    assign fk = form_kimligi | escape
+    assign form_attr = ' form="' | append: fk | append: '"'
+  endif
+-%}
+{%- if goster -%}
+<style>
+  .hediye-paketi__not { display: none; }
+  .hediye-paketi:has(input[value="Evet"]:checked) .hediye-paketi__not,
+  .hediye-paketi.hediye-paketi--acik .hediye-paketi__not { display: block; }
+  .hediye-paketi.hediye-paketi--kapali .hediye-paketi__not { display: none; }
+</style>
+<fieldset class="hediye-paketi{% if secili %} hediye-paketi--acik{% endif %}" data-hediye-paketi style="margin: 0 0 1rem; padding: 0; border: 0; text-align: left; font-size: .95em;">
+  <legend style="padding: 0; margin: 0 0 .5rem; font-weight: 600;">{{ baslik | escape }}</legend>
+  <div style="display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; margin-bottom: .5rem;">
+    <label style="display: inline-flex; gap: .45em; align-items: center; cursor: pointer;">
+      <input type="radio" name="attributes[Hediye paketi]" value="Hayır"{{ form_attr }}{% unless secili %} checked{% endunless %} data-hediye-secim style="margin: 0; accent-color: currentColor;">
+      İstemiyorum
+    </label>
+    <label style="display: inline-flex; gap: .45em; align-items: center; cursor: pointer;">
+      <input type="radio" name="attributes[Hediye paketi]" value="Evet"{{ form_attr }}{% if secili %} checked{% endif %} data-hediye-secim style="margin: 0; accent-color: currentColor;">
+      {{ secenek_metni | escape }}
+    </label>
+  </div>
+
+  {%- if not_goster -%}
+    <div class="hediye-paketi__not" data-hediye-not-kutu>
+      <label for="HediyeNotu-{{ ek }}" style="display: block; margin-bottom: .25rem;">Hediye notu (isteğe bağlı)</label>
+      <textarea id="HediyeNotu-{{ ek }}" name="attributes[Hediye notu]"{{ form_attr }} rows="3" maxlength="{{ uzunluk }}"
+        placeholder="{{ not_ipucu | escape }}" aria-describedby="HediyeNotuSayac-{{ ek }}" data-hediye-not
+        style="width: 100%; max-width: 420px; padding: .55rem .7rem; resize: vertical;">{{ mevcut_not | escape }}</textarea>
+      <p id="HediyeNotuSayac-{{ ek }}" data-hediye-sayac aria-live="polite" style="margin: .2rem 0 0; font-size: .85em; opacity: .7;">En fazla {{ uzunluk }} karakter</p>
+    </div>
+    {%- comment -%} Paketten vazgeçilince eski notu sepetten silmek için (JavaScript yönetir) {%- endcomment -%}
+    <input type="hidden" name="attributes[Hediye notu]" value=""{{ form_attr }} disabled data-hediye-temizle>
+  {%- endif -%}
+
+  {%- if aciklama != blank -%}
+    <p style="margin: .4rem 0 0; font-size: .9em; opacity: .75;">{{ aciklama | escape }}</p>
+  {%- endif -%}
+</fieldset>
+<script src="{{ 'hediye-paketi.js' | asset_url }}" defer></script>
+{%- endif -%}
