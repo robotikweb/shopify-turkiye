@@ -28,6 +28,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/stok-bildirimi.liquid` + `assets/stok-bildirimi.js` | Tükenmiş varyantta "Gelince haber verelim" formu; müşterinin e-postasını ürün, varyant, SKU ve bağlantıyla Shopify'ın iletişim formu üzerinden size iletir |
 | `snippets/beden-tablosu.liquid` | Ürün sayfasında "Beden tablosu" bağlantısı; sizin oluşturduğunuz tablo sayfasını sayfadan çıkmadan açılır pencerede gösterir. Ürüne özel tablo meta alan veya etiketle atanır, yalnızca beden seçenekli ürünlerde çıkar |
 | `snippets/hediye-paketi.liquid` + `assets/hediye-paketi.js` | Sepette "Hediye paketi yapılsın" seçeneği ve karakter sınırlı hediye notu; seçim ve not siparişe kaydedilir, paketten vazgeçilince not silinir |
+| `snippets/minimum-siparis-tutari.liquid` + `assets/minimum-siparis.js` | Sepet toplamı belirlediğiniz en az sipariş tutarının altındaysa "Ödemeye geçmek için 37,50 TL daha ürün ekleyin" uyarısı ve ilerleme çubuğu; tutar tamamlanana kadar "Ödeme" butonu ödemeye geçirmez |
 
 ## Kurulum
 
@@ -262,6 +263,18 @@ Varsayılan sayfa yalnızca "Beden", "Numara" veya "Size" seçeneği olan ürün
 ```
 
 Müşteri "İstemiyorum" veya "Hediye paketi yapılsın" seçer; ikincisinde isteğe bağlı bir hediye notu kutusu açılır (varsayılan en fazla 200 karakter, `not_uzunlugu` ile 20–500 arası; `not_alani: false` ile kapatılır). Bilgiler siparişe "Hediye paketi" (Evet / Hayır) ve "Hediye notu" sepet özellikleri olarak kaydedilir ve sipariş detayında "Ek ayrıntılar" altında görünür. Seçim değişince sepete hemen kaydedilir; paketten vazgeçilirse not sepetten silinir. Sepette yalnızca dijital ürün veya hediye kartı varsa alan görünmez. Snippet yalnızca isteği kaydeder: siparişe ücret veya ürün eklemez ve hiçbir ücret ya da koşul varsaymaz; paket ücretliyse bunu `aciklama` ile kendiniz yazın ve ücreti ayrıca tahsil edin. Ürün sayfasındaki "Hemen al" ve hızlı ödeme butonları sepeti atladığı için o siparişlerde hediye bilgisi boş kalır. Fatura bilgisi ve TC Kimlik No alanlarıyla birlikte kullanılabilir.
+
+### Minimum sipariş tutarı
+
+`assets/minimum-siparis.js` dosyasını da yükleyin. Dawn tabanlı temalarda `sections/main-cart-footer.liquid` (sepet sayfası) ve `snippets/cart-drawer.liquid` (sepet çekmecesi) içinde `<div class="cart__ctas"` satırının hemen üstüne:
+
+```liquid
+{% render 'minimum-siparis-tutari', alt_tutar: 25000 %}
+{% render 'minimum-siparis-tutari', alt_tutar: 100000, cubuk: false, metin: 'Siparişlerimiz [alt_tutar] ve üzeri tutarlarda gönderilir. [kalan] daha ekleyin.' %}
+{% render 'minimum-siparis-tutari', alt_tutar: 25000, engelle: false, tamam_metni: 'Sepetiniz en az sipariş tutarını karşılıyor.' %}
+```
+
+`alt_tutar` kuruş cinsindendir (250 TL = `25000`) ve zorunludur; verilmezse yalnızca tema düzenleyicide size uyarı çıkar. Sepet toplamı bu tutarın altındaysa uyarı (`[alt_tutar]` ve `[kalan]` yer tutucularıyla kendi cümlenizi `metin` ile yazabilirsiniz) ve ilerleme çubuğu görünür; "Ödeme" butonu tutar tamamlanana kadar ödemeye geçirmez (`engelle: false` ile yalnızca bilgi verir). Müşteri sepette ürün ekleyip çıkardıkça uyarı sayfa yenilenmeden güncellenir. Karşılaştırma sepette uygulanan indirimler düşülmüş, kargo hariç sepet toplamıyla yapılır; ödeme sayfasında girilen indirim kodları hesaba katılmaz. Müşterinin sepeti `para_birimi` (varsayılan mağaza para biriminiz) dışında bir para birimindeyse kural uygulanmaz. Kontrol yalnızca sepette çalışır: ürün sayfasındaki "Hemen al" ve sepetteki hızlı ödeme butonları sepeti atladığı için onları tema düzenleyiciden kapatın; kuralı ödeme sayfasında da kesin uygulamak için ödeme doğrulaması yapan bir uygulama gerekir. Snippet hiçbir tutar varsaymaz; tutarı sözleşmelerinizde de belirtiyorsanız aynı olduğundan emin olun. Mesafeli satış onayı, fatura bilgisi ve hediye paketi snippet'leriyle birlikte kullanılabilir.
 
 ## Türkiye için Shopify kontrol listesi
 

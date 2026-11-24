@@ -1,0 +1,130 @@
+{%- comment -%}
+  Minimum sipariş tutarı uyarısı ve ödeme engeli (sepet sayfası ve sepet çekmecesi)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Amaç: Sepet toplamı sizin belirlediğiniz en az sipariş tutarının altındaysa sepette "Ödemeye geçmek
+  için 37,50 TL daha ürün ekleyin" uyarısını ve bir ilerleme çubuğu gösterir; tutar tamamlanana kadar
+  "Ödeme" butonu ödemeye geçirmez. Müşteri ürün ekleyip çıkardıkça uyarı kendiliğinden güncellenir.
+
+  Kullanım: assets/minimum-siparis.js dosyasını da yükleyin. Dawn tabanlı temalarda
+  sections/main-cart-footer.liquid (sepet sayfası) ve snippets/cart-drawer.liquid (sepet çekmecesi)
+  içinde <div class="cart__ctas" satırının hemen üstüne:
+    {% render 'minimum-siparis-tutari', alt_tutar: 25000 %}
+
+  Diğer örnekler:
+    {% render 'minimum-siparis-tutari', alt_tutar: 100000, cubuk: false %}
+    {% render 'minimum-siparis-tutari', alt_tutar: 25000, metin: 'Siparişlerimiz [alt_tutar] ve üzeri tutarlarda gönderilir. [kalan] daha ekleyin.' %}
+    {% render 'minimum-siparis-tutari', alt_tutar: 25000, engelle: false, tamam_metni: 'Sepetiniz en az sipariş tutarını karşılıyor.' %}
+
+  Parametreler:
+  alt_tutar   : En az sipariş tutarı, KURUŞ cinsinden (250 TL = 25000). Zorunludur; verilmezse hiçbir şey
+                gösterilmez, yalnızca tema düzenleyicide size bir uyarı çıkar.
+  para_birimi : (isteğe bağlı) alt_tutar'ın para birimi (ISO kodu, ör. 'TRY'). Varsayılan mağazanızın
+                para birimi. Müşterinin sepeti başka bir para birimindeyse uyarı ve engel uygulanmaz.
+  metin       : (isteğe bağlı) Tutar karşılanmadığında gösterilen cümle. [alt_tutar] yerine en az tutar,
+                [kalan] yerine eksik tutar yazılır. Varsayılan
+                "En az sipariş tutarımız [alt_tutar]. Ödemeye geçmek için sepetinize [kalan] daha ürün ekleyin."
+  tamam_metni : (isteğe bağlı) Tutar karşılandığında gösterilecek cümle. Varsayılan yoktur; verilmezse
+                tutar karşılanınca kutu tamamen gizlenir.
+  cubuk       : (isteğe bağlı) false verilirse ilerleme çubuğu gösterilmez. Varsayılan true.
+  engelle     : (isteğe bağlı) false verilirse yalnızca bilgi verilir, "Ödeme" butonu engellenmez.
+                Varsayılan true.
+
+  Notlar:
+  - Snippet hiçbir tutar varsaymaz; en az sipariş tutarını ve cümleyi siz belirlersiniz. Tutarı mesafeli
+    satış sözleşmenizde veya ön bilgilendirme formunuzda da belirtiyorsanız ikisinin aynı olduğundan
+    emin olun.
+  - Karşılaştırma, sepet toplamıyla (cart.total_price: sepette uygulanan indirimler düşülmüş, kargo
+    hariç tutar) yapılır. Ödeme sayfasında girilen indirim kodları veya kargo ücreti hesaba katılmaz;
+    müşteri ödeme sayfasında girdiği bir kodla tutarın altına inebilir.
+  - Shopify'ın ödeme sayfası (checkout) değiştirilmez; kontrol yalnızca sepet sayfasında ve sepet
+    çekmecesindedir. Ürün sayfasındaki "Hemen al" (dinamik ödeme) butonları ve sepetteki hızlı ödeme
+    butonları (Shop Pay, PayPal vb.) sepeti atlar; kuralın atlanmaması için onları tema düzenleyiciden
+    kapatın. Kuralı ödeme sayfasında da kesin olarak uygulamak isterseniz ödeme doğrulaması yapan bir
+    uygulama gerekir.
+  - Engel JavaScript ile çalışır; JavaScript kapalıysa uyarı yine görünür ama ödemeye geçiş engellenmez.
+    Aynı formdaki "Güncelle" (name="update") butonları engellenmez.
+  - Sepet sayfayı yenilemeden (AJAX ile) değiştiğinde dosya Shopify'ın /cart.js adresinden güncel toplamı
+    okur ve uyarıyı yeniler; tema bölümü yeniden çizmese de çalışır. Mağaza dışına veri göndermez.
+  - Sepet boşsa hiçbir şey gösterilmez. Mesafeli satış onayı, fatura bilgisi ve hediye paketi
+    snippet'leriyle birlikte kullanılabilir.
+{%- endcomment -%}
+{%- liquid
+  assign alt = alt_tutar | default: 0 | plus: 0
+  assign para = para_birimi | default: shop.currency | upcase
+  assign sepet_para = cart.currency.iso_code | default: shop.currency
+  assign metin = metin | default: 'En az sipariş tutarımız [alt_tutar]. Ödemeye geçmek için sepetinize [kalan] daha ürün ekleyin.'
+
+  assign cubuk_goster = true
+  if cubuk == false
+    assign cubuk_goster = false
+  endif
+  assign engel = true
+  if engelle == false
+    assign engel = false
+  endif
+
+  assign bicim = ''
+  if para == shop.currency
+    assign bicim = shop.money_format
+  endif
+
+  assign toplam = cart.total_price | default: 0
+  assign adet = cart.item_count | default: 0
+
+  assign uygulanir = true
+  if alt <= 0 or adet == 0 or sepet_para != para
+    assign uygulanir = false
+  endif
+
+  assign kalan = alt | minus: toplam
+  if kalan < 0
+    assign kalan = 0
+  endif
+  assign oran = 100
+  if alt > 0
+    assign oran = toplam | times: 100 | divided_by: alt
+  endif
+  if oran > 100
+    assign oran = 100
+  endif
+
+  assign gorunur = false
+  if uygulanir
+    if kalan > 0 or tamam_metni != blank
+      assign gorunur = true
+    endif
+  endif
+
+  assign alt_html = alt | money
+  assign kalan_html = kalan | money
+  assign uyari = metin | escape | replace: '[alt_tutar]', alt_html | replace: '[kalan]', kalan_html
+-%}
+{%- if alt > 0 -%}
+<div class="min-siparis" data-min-siparis role="status" aria-live="polite"
+  data-alt="{{ alt }}"
+  data-para="{{ para | escape }}"
+  data-bicim="{{ bicim | escape }}"
+  data-dil="{{ request.locale.iso_code | default: 'tr' }}"
+  data-toplam="{{ toplam }}"
+  data-adet="{{ adet }}"
+  data-sepet-para="{{ sepet_para | escape }}"
+  data-metin="{{ metin | escape }}"
+  data-tamam="{{ tamam_metni | escape }}"
+  data-engelle="{{ engel }}"
+  {% unless gorunur %}hidden{% endunless %}
+  style="margin: 0 0 1rem; padding: .75rem .9rem; border: 1px solid rgba(0,0,0,.12); border-radius: 6px; text-align: left; font-size: .9em; line-height: 1.5;">
+  <p data-min-eksik{% if kalan == 0 %} hidden{% endif %} style="margin: 0;">{{ uyari }}</p>
+  <p data-min-tamam{% if kalan > 0 or tamam_metni == blank %} hidden{% endif %} style="margin: 0; font-weight: 600;">{{ tamam_metni | escape }}</p>
+  {%- if cubuk_goster -%}
+    <div data-min-cubuk-kap{% if kalan == 0 %} hidden{% endif %} style="height: 6px; margin-top: .55rem; border-radius: 999px; background: rgba(0,0,0,.08); overflow: hidden;" aria-hidden="true">
+      <div data-min-cubuk style="height: 100%; width: {{ oran }}%; background: currentColor; transition: width .3s;"></div>
+    </div>
+  {%- endif -%}
+</div>
+<script src="{{ 'minimum-siparis.js' | asset_url }}" defer></script>
+{%- elsif request.design_mode -%}
+<p style="margin: 0 0 1rem; padding: .4rem .6rem; border: 1px dashed #b42318; color: #b42318; font-size: .9em;">
+  Yalnızca tema düzenleyicide görünür: minimum-siparis-tutari için alt_tutar parametresine en az sipariş tutarını kuruş cinsinden verin (250 TL = 25000).
+</p>
+{%- endif -%}
