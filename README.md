@@ -29,6 +29,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/beden-tablosu.liquid` | Ürün sayfasında "Beden tablosu" bağlantısı; sizin oluşturduğunuz tablo sayfasını sayfadan çıkmadan açılır pencerede gösterir. Ürüne özel tablo meta alan veya etiketle atanır, yalnızca beden seçenekli ürünlerde çıkar |
 | `snippets/hediye-paketi.liquid` + `assets/hediye-paketi.js` | Sepette "Hediye paketi yapılsın" seçeneği ve karakter sınırlı hediye notu; seçim ve not siparişe kaydedilir, paketten vazgeçilince not silinir |
 | `snippets/minimum-siparis-tutari.liquid` + `assets/minimum-siparis.js` | Sepet toplamı belirlediğiniz en az sipariş tutarının altındaysa "Ödemeye geçmek için 37,50 TL daha ürün ekleyin" uyarısı ve ilerleme çubuğu; tutar tamamlanana kadar "Ödeme" butonu ödemeye geçirmez |
+| `snippets/satici-bilgileri.liquid` | Alt bilginin altında unvan, MERSİS no, vergi dairesi/no, adres, telefon, e-posta, KEP adresi ve ETBİS karekodunu gösteren sade satıcı bilgileri (künye) bloğu; isterseniz tıklanınca açılır |
 
 ## Kurulum
 
@@ -275,6 +276,18 @@ Müşteri "İstemiyorum" veya "Hediye paketi yapılsın" seçer; ikincisinde ist
 ```
 
 `alt_tutar` kuruş cinsindendir (250 TL = `25000`) ve zorunludur; verilmezse yalnızca tema düzenleyicide size uyarı çıkar. Sepet toplamı bu tutarın altındaysa uyarı (`[alt_tutar]` ve `[kalan]` yer tutucularıyla kendi cümlenizi `metin` ile yazabilirsiniz) ve ilerleme çubuğu görünür; "Ödeme" butonu tutar tamamlanana kadar ödemeye geçirmez (`engelle: false` ile yalnızca bilgi verir). Müşteri sepette ürün ekleyip çıkardıkça uyarı sayfa yenilenmeden güncellenir. Karşılaştırma sepette uygulanan indirimler düşülmüş, kargo hariç sepet toplamıyla yapılır; ödeme sayfasında girilen indirim kodları hesaba katılmaz. Müşterinin sepeti `para_birimi` (varsayılan mağaza para biriminiz) dışında bir para birimindeyse kural uygulanmaz. Kontrol yalnızca sepette çalışır: ürün sayfasındaki "Hemen al" ve sepetteki hızlı ödeme butonları sepeti atladığı için onları tema düzenleyiciden kapatın; kuralı ödeme sayfasında da kesin uygulamak için ödeme doğrulaması yapan bir uygulama gerekir. Snippet hiçbir tutar varsaymaz; tutarı sözleşmelerinizde de belirtiyorsanız aynı olduğundan emin olun. Mesafeli satış onayı, fatura bilgisi ve hediye paketi snippet'leriyle birlikte kullanılabilir.
+
+### Satıcı bilgileri (künye)
+
+`layout/theme.liquid` dosyasında `{% sections 'footer-group' %}` satırının hemen altına (eski temalarda `{% section 'footer' %}` satırının altına) ya da "Hakkımızda / İletişim" sayfa şablonundaki bir "Özel Liquid" bloğuna:
+
+```liquid
+{% render 'satici-bilgileri', unvan: 'Örnek Ticaret Ltd. Şti.', mersis_no: '0000000000000000', eposta: 'destek@ornek.com' %}
+{% render 'satici-bilgileri', unvan: 'Örnek Ticaret Ltd. Şti.', vergi_dairesi: 'Örnek V.D.', vergi_no: '0000000000', shop_adresi: true, telefon: '+90 212 000 00 00', kep: 'ornek@hs01.kep.tr', stil: 'acilir' %}
+{% render 'satici-bilgileri', unvan: 'Örnek Ticaret Ltd. Şti.', etbis_gorsel: 'https://...', etbis_baglanti: 'https://...', ek_satirlar: 'Çalışma saatleri: Hafta içi 09.00-18.00' %}
+```
+
+`unvan` zorunludur; verilmezse blok görünmez, yalnızca tema düzenleyicide size uyarı çıkar (mağaza adı unvan yerine kullanılmaz). Diğer satırlar (MERSİS no, ticaret sicil no, vergi dairesi, vergi no, adres, telefon, e-posta, KEP adresi, meslek odası) yalnızca siz verirseniz gösterilir; `ek_satirlar` ile "Etiket: değer" biçiminde, `;` ile ayırarak kendi satırlarınızı ekleyebilirsiniz. `shop_adresi: true` adresi, `shop_eposta: true` e-postayı **Ayarlar > Mağaza ayrıntıları**'ndan alır. Telefon tıklanınca arama, e-posta tıklanınca e-posta uygulaması açılır. ETBİS karekodu için ETBİS'in size verdiği görseli **İçerik > Dosyalar**'a yükleyip adresini `etbis_gorsel`, doğrulama bağlantısını `etbis_baglanti` ile verin; snippet karekod veya bağlantı üretmez. `stil: 'acilir'` ile blok "Satıcı bilgileri" başlığına tıklanınca açılır, `hizalama: 'orta'` ile ortalanır. MERSİS veya vergi numarasının biçimi tutmuyorsa tema düzenleyicide size uyarı çıkar; numaraların doğruluğu kontrol edilmez. Snippet hiçbir bilgi veya yasal ifade içermez: bilgiler faturalarınız ve sözleşmelerinizle aynı olmalı, hangi bilgileri göstermeniz gerektiğini hukuk danışmanınız veya mali müşavirinizle kontrol edin. Görünmeyen yapılandırılmış veri için Organization JSON-LD snippet'iyle birlikte kullanılabilir. JavaScript kullanmaz.
 
 ## Türkiye için Shopify kontrol listesi
 

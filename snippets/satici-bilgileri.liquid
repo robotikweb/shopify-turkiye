@@ -1,0 +1,196 @@
+{%- comment -%}
+  Satıcı bilgileri (künye) bloğu: unvan, MERSİS no, vergi bilgileri, adres, iletişim, KEP ve ETBİS karekodu
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Amaç: Mağazanın kimlik ve iletişim bilgilerini (künyesini) sitenin her sayfasında, alt bilginin hemen
+  altında veya bir "Hakkımızda / İletişim" sayfasında, sade ve okunaklı bir blok olarak göstermek.
+  Tüm bilgiler sizin verdiğiniz parametrelerden gelir; snippet hiçbir bilgi uydurmaz.
+
+  Kullanım: layout/theme.liquid dosyasında {% sections 'footer-group' %} satırının hemen altına
+  (eski temalarda {% section 'footer' %} satırının altına) veya bir sayfa şablonundaki "Özel Liquid" bloğuna:
+    {% render 'satici-bilgileri', unvan: 'Örnek Ticaret Ltd. Şti.', mersis_no: '0000000000000000', eposta: 'destek@ornek.com' %}
+    {% render 'satici-bilgileri',
+      unvan: 'Örnek Ticaret Ltd. Şti.',
+      mersis_no: '0000000000000000',
+      ticaret_sicil_no: '000000',
+      vergi_dairesi: 'Örnek V.D.',
+      vergi_no: '0000000000',
+      shop_adresi: true,
+      telefon: '+90 212 000 00 00',
+      eposta: 'destek@ornek.com',
+      kep: 'ornekticaret@hs01.kep.tr',
+      etbis_gorsel: 'https://...',
+      etbis_baglanti: 'https://...',
+      stil: 'acilir'
+    %}
+
+  unvan            : (ZORUNLU) ticaret sicilindeki tam unvan veya şahıs işletmesinde ad soyad.
+                     Verilmezse blok gösterilmez; tema düzenleyicide yalnızca size bir uyarı çıkar.
+                     Mağaza adı (shop.name) unvan yerine KULLANILMAZ.
+  mersis_no        : (isteğe bağlı) MERSİS numarası.
+  ticaret_sicil_no : (isteğe bağlı) ticaret sicil numarası. Sicil müdürlüğünü de yazmak isterseniz
+                     değerin içine ekleyin (ör. 'İstanbul / 000000').
+  vergi_dairesi    : (isteğe bağlı) vergi dairesi adı.
+  vergi_no         : (isteğe bağlı) vergi kimlik numarası.
+  adres            : (isteğe bağlı) açık adres, tek satır (ör. 'Örnek Mah. Örnek Cad. No: 1, 34000 Kadıköy/İstanbul').
+  shop_adresi      : (isteğe bağlı) true verilirse ve adres boşsa adres Ayarlar > Mağaza ayrıntıları'ndaki
+                     adresten (shop.address) kurulur.
+  telefon          : (isteğe bağlı) telefon (ör. '+90 212 000 00 00'). Tıklanınca arama başlatır.
+  eposta           : (isteğe bağlı) müşteri iletişim e-postası. Tıklanınca e-posta uygulaması açılır.
+  shop_eposta      : (isteğe bağlı) true verilirse ve eposta boşsa Ayarlar > Mağaza ayrıntıları'ndaki
+                     iletişim e-postası (shop.email) kullanılır.
+  kep              : (isteğe bağlı) KEP (kayıtlı elektronik posta) adresi.
+  meslek_odasi     : (isteğe bağlı) kayıtlı olduğunuz meslek odası / ticaret odası.
+  ek_satirlar      : (isteğe bağlı) kendi satırlarınız, "Etiket: değer" biçiminde, satırlar ; ile ayrılır
+                     (ör. 'Sorumlu kişi: Ad Soyad; Çalışma saatleri: Hafta içi 09.00-18.00').
+  etbis_gorsel     : (isteğe bağlı) ETBİS kaydınızda size verilen karekod görselinin tam adresi (https://...).
+                     Görseli Shopify'a yüklemek için İçerik > Dosyalar bölümünü kullanıp bağlantısını kopyalayın.
+  etbis_baglanti   : (isteğe bağlı) karekoda tıklanınca açılacak, ETBİS'in size verdiği doğrulama bağlantısı.
+  baslik           : (isteğe bağlı) blok başlığı. Varsayılan "Satıcı bilgileri".
+  stil             : (isteğe bağlı) 'acik' (varsayılan, bilgiler hep görünür) veya 'acilir' (başlığa
+                     tıklanınca açılan, yer kaplamayan kutu; JavaScript kullanmaz).
+  hizalama         : (isteğe bağlı) 'sol' (varsayılan) veya 'orta'.
+
+  Notlar:
+  - Snippet hiçbir unvan, numara, adres veya yasal ifade içermez; verilmeyen satır gösterilmez.
+    Bilgilerin faturalarınızdaki, mesafeli satış sözleşmenizdeki ve ön bilgilendirme formunuzdaki
+    bilgilerle birebir aynı olduğundan emin olun.
+  - Hangi bilgileri sitede göstermeniz gerektiğini (6563 sayılı Kanun ve ilgili yönetmelik kapsamındaki
+    bilgi verme yükümlülükleriniz, ETBİS kaydı vb.) hukuk danışmanınız veya mali müşavirinizle kontrol edin.
+  - ETBİS karekodu ve doğrulama bağlantısı snippet tarafından üretilmez; ETBİS'in size verdiğini girin.
+  - MERSİS ve vergi numarası biçimi tutmuyorsa yalnızca tema düzenleyicide size uyarı çıkar;
+    numaraların doğruluğu kontrol edilmez.
+  - Girdiğiniz tüm bilgiler sayfa kaynağında herkese açıktır.
+  - Görünmeyen yapılandırılmış veri için organizasyon-yapisal-veri snippet'iyle birlikte kullanılabilir.
+  - Uygulama, ek dosya veya JavaScript gerektirmez. Ödeme (checkout) sayfalarında görünmez.
+{%- endcomment -%}
+{%- liquid
+  assign unvan = unvan | default: '' | strip
+  assign mersis_no = mersis_no | default: '' | strip
+  assign ticaret_sicil_no = ticaret_sicil_no | default: '' | strip
+  assign vergi_dairesi = vergi_dairesi | default: '' | strip
+  assign vergi_no = vergi_no | default: '' | strip
+  assign adres = adres | default: '' | strip
+  assign telefon = telefon | default: '' | strip
+  assign eposta = eposta | default: '' | strip
+  assign kep = kep | default: '' | strip
+  assign meslek_odasi = meslek_odasi | default: '' | strip
+  assign ek_satirlar = ek_satirlar | default: '' | strip
+  assign etbis_gorsel = etbis_gorsel | default: '' | strip
+  assign etbis_baglanti = etbis_baglanti | default: '' | strip
+  assign baslik = baslik | default: 'Satıcı bilgileri' | strip
+  assign stil = stil | default: 'acik'
+  assign hizalama = hizalama | default: 'sol'
+
+  if adres == blank and shop_adresi and shop.address != blank
+    assign adres_satiri = shop.address.address1 | default: '' | strip
+    if shop.address.address2 != blank
+      assign adres_satiri = adres_satiri | append: ' ' | append: shop.address.address2 | strip
+    endif
+    assign sehir = shop.address.city | default: '' | strip
+    if shop.address.province != blank
+      if sehir != blank
+        assign sehir = sehir | append: '/'
+      endif
+      assign sehir = sehir | append: shop.address.province | strip
+    endif
+    assign sehir_satiri = shop.address.zip | default: '' | strip
+    if sehir != blank
+      assign sehir_satiri = sehir_satiri | append: ' ' | append: sehir | strip
+    endif
+    assign adres = adres_satiri
+    if sehir_satiri != blank
+      if adres != blank
+        assign adres = adres | append: ', '
+      endif
+      assign adres = adres | append: sehir_satiri
+    endif
+  endif
+
+  if eposta == blank and shop_eposta
+    assign eposta = shop.email | default: '' | strip
+  endif
+
+  assign telefon_ara = telefon | remove: ' ' | remove: '(' | remove: ')' | remove: '-' | remove: '.'
+
+  assign uyarilar = ''
+  if mersis_no != blank
+    assign mersis_kontrol = mersis_no | remove: ' '
+    assign mersis_rakamsiz = mersis_kontrol | remove: '0' | remove: '1' | remove: '2' | remove: '3' | remove: '4' | remove: '5' | remove: '6' | remove: '7' | remove: '8' | remove: '9'
+    if mersis_kontrol.size != 16 or mersis_rakamsiz != blank
+      assign uyarilar = uyarilar | append: 'MERSİS numarası 16 haneli rakam görünmüyor. '
+    endif
+  endif
+  if vergi_no != blank
+    assign vergi_kontrol = vergi_no | remove: ' '
+    assign vergi_rakamsiz = vergi_kontrol | remove: '0' | remove: '1' | remove: '2' | remove: '3' | remove: '4' | remove: '5' | remove: '6' | remove: '7' | remove: '8' | remove: '9'
+    if vergi_rakamsiz != blank or vergi_kontrol.size < 10 or vergi_kontrol.size > 11
+      assign uyarilar = uyarilar | append: 'Vergi numarası 10 (şahıs işletmelerinde 11) haneli rakam görünmüyor. '
+    endif
+  endif
+  if etbis_baglanti != blank and etbis_gorsel == blank
+    assign uyarilar = uyarilar | append: 'ETBİS bağlantısı verildi ama karekod görseli (etbis_gorsel) boş. '
+  endif
+
+  if hizalama == 'orta'
+    assign hizalama_stili = 'text-align: center;'
+    assign liste_hizasi = 'margin: 0 auto;'
+  else
+    assign hizalama_stili = ''
+    assign liste_hizasi = 'margin: 0;'
+  endif
+  assign etiket_stili = 'margin: 0; opacity: .7; font-weight: 600; white-space: nowrap;'
+  assign deger_stili = 'margin: 0; overflow-wrap: anywhere;'
+-%}
+{%- if unvan != blank -%}
+{%- capture satirlar -%}
+  <dl style="display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: 1rem; row-gap: .35rem; max-width: 46rem; {{ liste_hizasi }} text-align: left;">
+    <dt style="{{ etiket_stili }}">Unvan</dt><dd style="{{ deger_stili }}">{{ unvan | escape }}</dd>
+    {%- if mersis_no != blank -%}<dt style="{{ etiket_stili }}">MERSİS No</dt><dd style="{{ deger_stili }}">{{ mersis_no | escape }}</dd>{%- endif -%}
+    {%- if ticaret_sicil_no != blank -%}<dt style="{{ etiket_stili }}">Ticaret Sicil No</dt><dd style="{{ deger_stili }}">{{ ticaret_sicil_no | escape }}</dd>{%- endif -%}
+    {%- if vergi_dairesi != blank -%}<dt style="{{ etiket_stili }}">Vergi Dairesi</dt><dd style="{{ deger_stili }}">{{ vergi_dairesi | escape }}</dd>{%- endif -%}
+    {%- if vergi_no != blank -%}<dt style="{{ etiket_stili }}">Vergi No</dt><dd style="{{ deger_stili }}">{{ vergi_no | escape }}</dd>{%- endif -%}
+    {%- if adres != blank -%}<dt style="{{ etiket_stili }}">Adres</dt><dd style="{{ deger_stili }}">{{ adres | escape }}</dd>{%- endif -%}
+    {%- if telefon != blank -%}<dt style="{{ etiket_stili }}">Telefon</dt><dd style="{{ deger_stili }}"><a href="tel:{{ telefon_ara | escape }}" style="color: inherit;">{{ telefon | escape }}</a></dd>{%- endif -%}
+    {%- if eposta != blank -%}<dt style="{{ etiket_stili }}">E-posta</dt><dd style="{{ deger_stili }}"><a href="mailto:{{ eposta | escape }}" style="color: inherit;">{{ eposta | escape }}</a></dd>{%- endif -%}
+    {%- if kep != blank -%}<dt style="{{ etiket_stili }}">KEP Adresi</dt><dd style="{{ deger_stili }}">{{ kep | escape }}</dd>{%- endif -%}
+    {%- if meslek_odasi != blank -%}<dt style="{{ etiket_stili }}">Meslek Odası</dt><dd style="{{ deger_stili }}">{{ meslek_odasi | escape }}</dd>{%- endif -%}
+    {%- if ek_satirlar != blank -%}
+      {%- assign ek_liste = ek_satirlar | split: ';' -%}
+      {%- for ek in ek_liste -%}
+        {%- if ek contains ':' -%}
+          {%- assign ek_parcalar = ek | split: ':' -%}
+          {%- assign ek_etiket = ek_parcalar.first | strip -%}
+          {%- assign ek_deger = ek | remove_first: ek_parcalar.first | remove_first: ':' | strip -%}
+          {%- if ek_etiket != blank and ek_deger != blank -%}
+            <dt style="{{ etiket_stili }}">{{ ek_etiket | escape }}</dt><dd style="{{ deger_stili }}">{{ ek_deger | escape }}</dd>
+          {%- endif -%}
+        {%- endif -%}
+      {%- endfor -%}
+    {%- endif -%}
+  </dl>
+  {%- if etbis_gorsel != blank -%}
+    <div style="margin-top: 1rem;">
+      {%- if etbis_baglanti != blank -%}<a href="{{ etbis_baglanti | escape }}" target="_blank" rel="noopener" style="display: inline-block;" aria-label="ETBİS kaydını doğrula (yeni sekmede açılır)">{%- endif -%}
+      <img src="{{ etbis_gorsel | escape }}" alt="ETBİS kayıt karekodu" width="96" height="96" loading="lazy" style="display: inline-block; vertical-align: top; width: 96px; height: auto; background: #fff; padding: 4px; border-radius: 4px;">
+      {%- if etbis_baglanti != blank -%}</a>{%- endif -%}
+    </div>
+  {%- endif -%}
+{%- endcapture -%}
+<div class="satici-bilgileri" style="max-width: var(--page-width, 1200px); margin: 0 auto; padding: 1.25rem 1.5rem; font-size: .85em; line-height: 1.5; border-top: 1px solid rgba(127,127,127,.25); {{ hizalama_stili }}">
+  {%- if stil == 'acilir' -%}
+  <details>
+    <summary style="cursor: pointer; font-weight: 600;">{{ baslik | escape }}</summary>
+    <div style="margin-top: .75rem;">{{ satirlar }}</div>
+  </details>
+  {%- else -%}
+  <p style="margin: 0 0 .75rem; font-weight: 600;">{{ baslik | escape }}</p>
+  {{ satirlar }}
+  {%- endif -%}
+  {%- if request.design_mode and uyarilar != blank -%}
+  <p style="margin: .75rem 0 0; padding: .5rem .75rem; border: 1px dashed #c00; color: #c00;">satici-bilgileri: {{ uyarilar | strip | escape }} Bu uyarı yalnızca tema düzenleyicide görünür.</p>
+  {%- endif -%}
+</div>
+{%- elsif request.design_mode -%}
+<p style="margin: .5rem auto; max-width: var(--page-width, 1200px); padding: .5rem .75rem; border: 1px dashed #c00; color: #c00; font-size: .85em;">satici-bilgileri: "unvan" parametresini verin (ör. unvan: 'Örnek Ticaret Ltd. Şti.'). Bu uyarı yalnızca tema düzenleyicide görünür.</p>
+{%- endif -%}
