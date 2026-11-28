@@ -1,0 +1,167 @@
+{%- comment -%}
+  Garanti ve ürün bilgileri: garanti süresi, garanti veren, menşei, üretici ve ithalatçı (ürün sayfası)
+  https://github.com/robotikweb/shopify-turkiye · MIT
+
+  Amaç: Ürün sayfasında, ürünün meta alanlarına girdiğiniz garanti süresi, garantiyi veren firma,
+  menşei (üretim yeri), üretici ve ithalatçı bilgilerini sade bir "Etiket: değer" listesi olarak
+  göstermek. Tüm değerler sizin girdiğiniz meta alanlardan veya parametrelerden gelir; snippet
+  hiçbir süre, firma veya koşul uydurmaz. Değeri boş olan satır gösterilmez.
+
+  Kurulum: Ayarlar > Meta alanlar ve meta nesneler > Ürünler bölümünde, göstermek istediğiniz
+  bilgiler için "Tek satırlık metin" türünde tanımlar oluşturun (varsayılan anahtarlar aşağıda),
+  sonra her ürünün sayfasının altındaki meta alanlar bölümünden değerleri girin.
+
+  Kullanım (ürün sayfasında "Sepete ekle" butonunun altına veya ürün açıklamasının yakınına;
+  Dawn tabanlı temalarda ürün şablonuna bir "Özel Liquid" bloğu olarak da eklenebilir):
+    {% render 'garanti-bilgisi', urun: product %}
+    {% render 'garanti-bilgisi', urun: product, stil: 'acilir', kosul_url: '/pages/garanti-kosullari' %}
+    {% render 'garanti-bilgisi', urun: product, varsayilanlar: 'Garanti veren: İthalatçı firma' %}
+    {% render 'garanti-bilgisi', urun: product, ek_alanlar: 'Model kodu: custom.model_kodu; Enerji sınıfı: custom.enerji_sinifi' %}
+
+  urun          : (isteğe bağlı) ürün nesnesi. Verilmezse sayfanın product nesnesi kullanılır.
+  alanlar       : (isteğe bağlı) gösterilecek satırlar, "Etiket: namespace.anahtar" biçiminde, ; ile ayrılır.
+                  Varsayılan:
+                    'Garanti süresi: custom.garanti_suresi; Garanti veren: custom.garanti_veren;
+                     Menşei: custom.mensei; Üretici: custom.uretici; İthalatçı: custom.ithalatci'
+  ek_alanlar    : (isteğe bağlı) alanlar listesinin sonuna eklenecek satırlar, aynı biçimde.
+  varsayilanlar : (isteğe bağlı) meta alanı boş olan ürünlerde kullanılacak değerler, "Etiket: değer"
+                  biçiminde, ; ile ayrılır (ör. 'Garanti süresi: 2 yıl'). Etiket, alanlar listesindeki
+                  etiketle birebir aynı yazılmalıdır. Varsayılan değer yoktur; verdiğiniz değer, meta alanı
+                  boş olan TÜM ürünlerde gösterilir.
+  baslik        : (isteğe bağlı) kutu başlığı. Varsayılan "Garanti ve ürün bilgileri". '' verilirse başlık çıkmaz
+                  (stil 'acilir' iken başlık her zaman gösterilir).
+  stil          : (isteğe bağlı) 'acik' (varsayılan, bilgiler hep görünür) veya 'acilir' (başlığa tıklanınca
+                  açılan kutu; JavaScript kullanmaz).
+  kosul_url     : (isteğe bağlı) listenin altına eklenecek koşullar sayfasının adresi (ör. '/pages/garanti-kosullari').
+  kosul_metni   : (isteğe bağlı) koşullar bağlantısının yazısı. Varsayılan "Garanti koşulları".
+  haric_etiket  : (isteğe bağlı) bu etiketi taşıyan ürünlerde kutu gösterilmez. Varsayılan "garanti-bilgisi-yok".
+
+  Notlar:
+  - Desteklenen meta alan türleri: tek satırlık ve çok satırlı metin, tek satırlık metin listesi,
+    tam ve ondalık sayı, evet/hayır (Evet / Hayır yazar). Diğer türler Shopify'ın metafield_text
+    filtresiyle yazıya çevrilir; en temiz sonuç için "Tek satırlık metin" kullanın.
+  - Süreyi birimiyle birlikte yazın (ör. "2 yıl", "24 ay"); snippet birim eklemez veya hesaplamaz.
+  - Bilgiler ürün düzeyindedir: çok varyantlı ürünlerde tüm varyantlar için aynı bilgi gösterilir.
+    Varyanta göre garanti değişiyorsa bilgiyi ürün açıklamasında belirtin.
+  - Snippet hiçbir garanti süresi, firma, menşei veya yasal ifade içermez. Gösterdiğiniz bilgiler
+    garanti belgenizle, ürün etiketiyle ve mesafeli satış sözleşmenizle aynı olmalıdır. Hangi ürünlerde
+    hangi bilgileri göstermeniz gerektiğini hukuk danışmanınızla kontrol edin.
+  - Hiçbir satırın değeri yoksa müşteriye bir şey gösterilmez; tema düzenleyicide yalnızca size,
+    aranan meta alan anahtarlarını listeleyen bir uyarı çıkar. Hediye kartlarında kutu gösterilmez.
+  - Uygulama, ek dosya veya JavaScript gerektirmez.
+{%- endcomment -%}
+{%- liquid
+  assign urun = urun | default: product
+  assign varsayilan_alanlar = 'Garanti süresi: custom.garanti_suresi; Garanti veren: custom.garanti_veren; Menşei: custom.mensei; Üretici: custom.uretici; İthalatçı: custom.ithalatci'
+  assign alanlar = alanlar | default: varsayilan_alanlar | strip
+  assign ek_alanlar = ek_alanlar | default: '' | strip
+  assign varsayilanlar = varsayilanlar | default: '' | strip
+  assign stil = stil | default: 'acik'
+  assign kosul_url = kosul_url | default: '' | strip
+  assign kosul_metni = kosul_metni | default: 'Garanti koşulları' | strip
+  assign haric_etiket = haric_etiket | default: 'garanti-bilgisi-yok' | strip
+  if baslik == nil
+    assign baslik = 'Garanti ve ürün bilgileri'
+  endif
+  assign baslik = baslik | strip
+  if stil == 'acilir' and baslik == blank
+    assign baslik = 'Garanti ve ürün bilgileri'
+  endif
+
+  if ek_alanlar != blank
+    assign alanlar = alanlar | append: ';' | append: ek_alanlar
+  endif
+
+  assign goster = true
+  if urun == blank or urun.gift_card?
+    assign goster = false
+  elsif haric_etiket != blank and urun.tags contains haric_etiket
+    assign goster = false
+  endif
+
+  assign varsayilan_liste = varsayilanlar | split: ';'
+  assign alan_listesi = alanlar | split: ';'
+  assign aranan_anahtarlar = ''
+  assign satir_sayisi = 0
+  assign etiket_stili = 'margin: 0; opacity: .7; font-weight: 600;'
+  assign deger_stili = 'margin: 0; overflow-wrap: anywhere;'
+-%}
+{%- if goster -%}
+{%- capture satirlar -%}
+  {%- for alan in alan_listesi -%}
+    {%- unless alan contains ':' -%}{%- continue -%}{%- endunless -%}
+    {%- liquid
+      assign parcalar = alan | split: ':'
+      assign etiket = parcalar.first | strip
+      assign yol = alan | remove_first: parcalar.first | remove_first: ':' | strip
+      assign yol_parcalari = yol | split: '.'
+      assign deger = ''
+      assign mf = nil
+      if etiket != blank and yol_parcalari.size == 2
+        assign ad_alani = yol_parcalari[0] | strip
+        assign anahtar = yol_parcalari[1] | strip
+        assign aranan_anahtarlar = aranan_anahtarlar | append: ad_alani | append: '.' | append: anahtar | append: ', '
+        assign mf = urun.metafields[ad_alani][anahtar]
+      endif
+
+      if mf != blank and mf.value != blank
+        if mf.type == 'single_line_text_field' or mf.type == 'multi_line_text_field'
+          assign deger = mf.value | strip | escape | newline_to_br
+        elsif mf.type == 'list.single_line_text_field'
+          assign deger = mf.value | join: ', ' | escape
+        elsif mf.type == 'number_integer' or mf.type == 'number_decimal'
+          assign deger = mf.value | append: '' | escape
+        elsif mf.type == 'boolean'
+          if mf.value == true
+            assign deger = 'Evet'
+          else
+            assign deger = 'Hayır'
+          endif
+        else
+          assign deger = mf | metafield_text | strip_html | strip
+        endif
+      elsif mf != blank and mf.type == 'boolean' and mf.value == false
+        assign deger = 'Hayır'
+      endif
+
+      if deger == blank and etiket != blank
+        for v in varsayilan_liste
+          if v contains ':'
+            assign v_parcalar = v | split: ':'
+            assign v_etiket = v_parcalar.first | strip
+            if v_etiket == etiket
+              assign deger = v | remove_first: v_parcalar.first | remove_first: ':' | strip | escape
+              break
+            endif
+          endif
+        endfor
+      endif
+    -%}
+    {%- if etiket != blank and deger != blank -%}
+      {%- assign satir_sayisi = satir_sayisi | plus: 1 -%}
+      <dt style="{{ etiket_stili }}">{{ etiket | escape }}</dt><dd style="{{ deger_stili }}">{{ deger }}</dd>
+    {%- endif -%}
+  {%- endfor -%}
+{%- endcapture -%}
+{%- if satir_sayisi > 0 -%}
+{%- capture icerik -%}
+  <dl style="display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: 1rem; row-gap: .35rem; margin: 0;">{{ satirlar }}</dl>
+  {%- if kosul_url != blank -%}
+  <p style="margin: .6rem 0 0;"><a href="{{ kosul_url | escape }}" style="color: inherit; text-decoration: underline;">{{ kosul_metni | escape }}</a></p>
+  {%- endif -%}
+{%- endcapture -%}
+<div class="garanti-bilgisi" style="margin: 1rem 0; padding: .85rem 1rem; border: 1px solid rgba(127,127,127,.3); border-radius: 6px; font-size: .9em; line-height: 1.5;">
+  {%- if stil == 'acilir' -%}
+  <details>
+    <summary style="cursor: pointer; font-weight: 600;">{{ baslik | escape }}</summary>
+    <div style="margin-top: .6rem;">{{ icerik }}</div>
+  </details>
+  {%- else -%}
+    {%- if baslik != blank -%}<p style="margin: 0 0 .5rem; font-weight: 600;">{{ baslik | escape }}</p>{%- endif -%}
+    {{ icerik }}
+  {%- endif -%}
+</div>
+{%- elsif request.design_mode -%}
+<p style="margin: .5rem 0; padding: .5rem .75rem; border: 1px dashed #c00; color: #c00; font-size: .85em;">garanti-bilgisi: Bu üründe gösterilecek bilgi bulunamadı. Aranan ürün meta alanları: {{ aranan_anahtarlar | strip | remove_last: ',' | escape }}. Değerleri ürünün meta alanlarına girin veya "varsayilanlar" parametresini kullanın. Bu uyarı yalnızca tema düzenleyicide görünür.</p>
+{%- endif -%}
+{%- endif -%}

@@ -30,6 +30,7 @@ Hazırlayan: [Robotik Web](https://robotikweb.com.tr), Shopify Partner.
 | `snippets/hediye-paketi.liquid` + `assets/hediye-paketi.js` | Sepette "Hediye paketi yapılsın" seçeneği ve karakter sınırlı hediye notu; seçim ve not siparişe kaydedilir, paketten vazgeçilince not silinir |
 | `snippets/minimum-siparis-tutari.liquid` + `assets/minimum-siparis.js` | Sepet toplamı belirlediğiniz en az sipariş tutarının altındaysa "Ödemeye geçmek için 37,50 TL daha ürün ekleyin" uyarısı ve ilerleme çubuğu; tutar tamamlanana kadar "Ödeme" butonu ödemeye geçirmez |
 | `snippets/satici-bilgileri.liquid` | Alt bilginin altında unvan, MERSİS no, vergi dairesi/no, adres, telefon, e-posta, KEP adresi ve ETBİS karekodunu gösteren sade satıcı bilgileri (künye) bloğu; isterseniz tıklanınca açılır |
+| `snippets/garanti-bilgisi.liquid` | Ürün sayfasında garanti süresi, garanti veren, menşei, üretici ve ithalatçı bilgilerini ürünün meta alanlarından okuyup "Etiket: değer" listesi olarak gösterir; boş satırlar gizlenir, isterseniz tıklanınca açılır |
 
 ## Kurulum
 
@@ -288,6 +289,18 @@ Müşteri "İstemiyorum" veya "Hediye paketi yapılsın" seçer; ikincisinde ist
 ```
 
 `unvan` zorunludur; verilmezse blok görünmez, yalnızca tema düzenleyicide size uyarı çıkar (mağaza adı unvan yerine kullanılmaz). Diğer satırlar (MERSİS no, ticaret sicil no, vergi dairesi, vergi no, adres, telefon, e-posta, KEP adresi, meslek odası) yalnızca siz verirseniz gösterilir; `ek_satirlar` ile "Etiket: değer" biçiminde, `;` ile ayırarak kendi satırlarınızı ekleyebilirsiniz. `shop_adresi: true` adresi, `shop_eposta: true` e-postayı **Ayarlar > Mağaza ayrıntıları**'ndan alır. Telefon tıklanınca arama, e-posta tıklanınca e-posta uygulaması açılır. ETBİS karekodu için ETBİS'in size verdiği görseli **İçerik > Dosyalar**'a yükleyip adresini `etbis_gorsel`, doğrulama bağlantısını `etbis_baglanti` ile verin; snippet karekod veya bağlantı üretmez. `stil: 'acilir'` ile blok "Satıcı bilgileri" başlığına tıklanınca açılır, `hizalama: 'orta'` ile ortalanır. MERSİS veya vergi numarasının biçimi tutmuyorsa tema düzenleyicide size uyarı çıkar; numaraların doğruluğu kontrol edilmez. Snippet hiçbir bilgi veya yasal ifade içermez: bilgiler faturalarınız ve sözleşmelerinizle aynı olmalı, hangi bilgileri göstermeniz gerektiğini hukuk danışmanınız veya mali müşavirinizle kontrol edin. Görünmeyen yapılandırılmış veri için Organization JSON-LD snippet'iyle birlikte kullanılabilir. JavaScript kullanmaz.
+
+### Garanti ve ürün bilgileri
+
+Önce **Ayarlar > Meta alanlar ve meta nesneler > Ürünler** bölümünde göstermek istediğiniz bilgiler için "Tek satırlık metin" türünde tanımlar oluşturun: `custom.garanti_suresi`, `custom.garanti_veren`, `custom.mensei`, `custom.uretici`, `custom.ithalatci`. Değerleri her ürünün sayfasının altındaki meta alanlar bölümünden girin. Ardından ürün sayfasında "Sepete ekle" butonunun altına (veya ürün şablonuna bir "Özel Liquid" bloğu olarak):
+
+```liquid
+{% render 'garanti-bilgisi', urun: product %}
+{% render 'garanti-bilgisi', urun: product, stil: 'acilir', kosul_url: '/pages/garanti-kosullari' %}
+{% render 'garanti-bilgisi', urun: product, varsayilanlar: 'Garanti veren: İthalatçı firma', ek_alanlar: 'Model kodu: custom.model_kodu' %}
+```
+
+Yalnızca değeri girilmiş satırlar gösterilir; hiçbir satır dolu değilse müşteriye bir şey görünmez, tema düzenleyicide size aranan meta alan anahtarlarını listeleyen bir uyarı çıkar. Satırları ve etiketleri `alanlar` ile ("Etiket: namespace.anahtar; ..." biçiminde) tamamen değiştirebilir, `ek_alanlar` ile yenilerini ekleyebilirsiniz. `varsayilanlar` ile verdiğiniz değer, o meta alanı boş olan tüm ürünlerde gösterilir; snippet'in kendi varsayılan değeri yoktur. Süreyi birimiyle yazın ("2 yıl", "24 ay"). Bilgiler ürün düzeyindedir, tüm varyantlarda aynı görünür. `garanti-bilgisi-yok` etiketli ürünlerde ve hediye kartlarında kutu çıkmaz. Snippet hiçbir süre, firma veya yasal ifade içermez: gösterdiğiniz bilgiler garanti belgenizle, ürün etiketiyle ve mesafeli satış sözleşmenizle aynı olmalıdır; hangi ürünlerde hangi bilgileri göstermeniz gerektiğini hukuk danışmanınızla kontrol edin. JavaScript kullanmaz.
 
 ## Türkiye için Shopify kontrol listesi
 
